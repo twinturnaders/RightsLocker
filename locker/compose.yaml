@@ -2,11 +2,26 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=${}'
-      - 'POSTGRES_USER=myuser'
+      url: ${DB_URL:}
+      username: ${SPRING_DATASOURCE_USERNAME:capuser}
+      password: ${SPRING_DATASOURCE_PASSWORD:cappass}'
     ports:
       - '5432'
+
+
+
+  db-migrations:
+          build:
+            context: ./flyway # Directory containing your Flyway Dockerfile and migrations
+          environment:
+            FLYWAY_URL: jdbc:postgresql://db:5432/your_database_name
+            FLYWAY_USER: your_user
+            FLYWAY_PASSWORD: your_password
+            # Other Flyway configurations like locations
+          depends_on:
+            - db # Ensure the database service is up before migrations run
+          networks:
+            - app-network
   rabbitmq:
     image: 'rabbitmq:latest'
     environment:

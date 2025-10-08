@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/RightsLocker.iml" filepath="$PROJECT_DIR$/.idea/RightsLocker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/locker/locker.iml" filepath="$PROJECT_DIR$/locker/locker.iml" />
     </modules>
   </component>
 </project>
