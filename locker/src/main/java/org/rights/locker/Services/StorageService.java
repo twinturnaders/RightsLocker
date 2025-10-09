@@ -1,10 +1,13 @@
 package org.rights.locker.Services;
 
 import java.io.InputStream;
+import java.util.Map;
 
 
 public interface StorageService {
     String putOriginal(String key, InputStream in, long size, String contentType, String sha256);
     String putHot(String key, InputStream in, long size, String contentType);
     String signedGet(String bucketKey, int seconds);
+
+    Map<String, Object> signedPut(String key, String bucket, int seconds, String contentType);
 }

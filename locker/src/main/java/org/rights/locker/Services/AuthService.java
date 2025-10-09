@@ -4,10 +4,10 @@ package org.rights.locker.Services;
 import lombok.RequiredArgsConstructor;
 import org.rights.locker.DTOs.TokenResponse;
 import org.rights.locker.Entities.AppUser;
+import org.rights.locker.Enums.Role;
 import org.rights.locker.Repos.AppUserRepo;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class AuthService {
                 .email(email)
                 .passwordHash(encoder.encode(password))
                 .displayName(displayName)
-                .role("USER")
+                .role(Role.valueOf("USER"))
                 .build();
         return users.save(user);
     }

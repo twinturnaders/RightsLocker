@@ -3,6 +3,8 @@ package org.rights.locker.Entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.rights.locker.Enums.Role;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -25,9 +27,9 @@ public class AppUser {
 
     private String displayName;
 
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role; // USER, MOD, ADMIN
+    private Role role; // USER, MOD, ADMIN
 
 
     @Column(nullable = false)
@@ -41,7 +43,7 @@ public class AppUser {
     @PrePersist void onCreate(){
         var now = Instant.now();
         this.createdAt = now; this.updatedAt = now;
-        if (this.role == null) this.role = "USER";
+        if (this.role == null) this.role = Role.valueOf("USER");
     }
     @PreUpdate void onUpdate(){ this.updatedAt = Instant.now(); }
 }

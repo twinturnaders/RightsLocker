@@ -12,11 +12,11 @@ services:
 
   db-migrations:
           build:
-            context: ./flyway # Directory containing your Flyway Dockerfile and migrations
+            context: ./db/migration # Directory containing your Flyway Dockerfile and migrations
           environment:
-            FLYWAY_URL: jdbc:postgresql://db:5432/your_database_name
-            FLYWAY_USER: your_user
-            FLYWAY_PASSWORD: your_password
+            FLYWAY_URL: jdbc:postgresql://db:5432/RightsLocker
+            FLYWAY_USER: ${DB_USER}
+            FLYWAY_PASSWORD: ${DB_PASS}
             # Other Flyway configurations like locations
           depends_on:
             - db # Ensure the database service is up before migrations run

@@ -8,7 +8,6 @@ import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ShareLinkRepo;
 import org.springframework.stereotype.Service;
 
-
 import java.time.Instant;
 import java.util.UUID;
 
