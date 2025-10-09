@@ -1,19 +1,17 @@
 package org.rights.locker.Entities;
 
-
-
 import jakarta.persistence.*;
 import lombok.*;
-import org.rights.locker.Enums.CustodyEventType;
+import org.rights.locker.Entities.Evidence;
 
 import java.time.Instant;
 import java.util.UUID;
 
 
 @Entity
-@Table(name = "custody_event")
+@Table(name = "coc_report")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class CustodyEvent {
+public class CocReport {
     @Id @GeneratedValue
     private UUID id;
 
@@ -22,17 +20,12 @@ public class CustodyEvent {
     private Evidence evidence;
 
 
-    @ManyToOne @JoinColumn(name = "actor_user_id")
-    private AppUser actor;
+    @Column(nullable = false)
+    private String pdfKey;
 
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "event_type", nullable = false)
-    private CustodyEventType eventType;
-
-
-    @Column(columnDefinition = "jsonb")
-    private String metaJson;
+    @Column(nullable = false)
+    private String sha256;
 
 
     @Column(nullable = false)
