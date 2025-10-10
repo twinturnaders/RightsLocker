@@ -1,22 +1,16 @@
-import { Routes } from '@angular/router';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { Routes, provideRouter } from '@angular/router';
 import { inject } from '@angular/core';
-import { AuthService } from './core/auth.service';
+import { AuthService} from './core/auth.service/auth.service.component';
 
-export const authGuard = () => {
-  const auth = inject(AuthService);
-  return auth.isAuthed$;
-};
+const authed = () => inject(AuthService).isAuthed$;
 
 export const routes: Routes = [
-  { path: 'login', loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent) },
-  { path: 'evidence', loadComponent: () => import('./features/evidence/evidence-list.component').then(m => m.EvidenceListComponent), canActivate: [authGuard] },
-  { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail.component').then(m => m.EvidenceDetailComponent), canActivate: [authGuard] },
-  { path: 'upload', loadComponent: () => import('./features/evidence/evidence-upload.component').then(m => m.EvidenceUploadComponent), canActivate: [authGuard] },
   { path: '', pathMatch: 'full', redirectTo: 'evidence' },
+  { path: 'evidence', loadComponent: () => import('./features/evidence/evidence-list/evidence-list.component').then(m => m.EvidenceListComponent), canActivate:[authed]},
+  { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.component').then(m => m.EvidenceDetailComponent), canActivate:[authed]},
+  { path: 'upload', loadComponent: () => import('./features/evidence/evidence-upload/evidence-upload.component').then(m => m.EvidenceUploadComponent), canActivate:[authed]},
+  { path: 'legal', loadComponent: () => import('./features/legal/legal.component').then(m => m.LegalComponent) },
+  { path: 'about', loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent) },
   { path: '**', redirectTo: 'evidence' }
 ];
-
-export const routingProviders = [
-  provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled' }))
-];
+export const routingProviders = [provideRouter(routes)];

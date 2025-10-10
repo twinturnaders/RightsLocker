@@ -1,16 +1,12 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { AppComponent } from './shell/app.component';
+import { AppComponent} from "./app/app.component";
+import { routingProviders} from "./app/app.routes";
 import { importProvidersFrom } from '@angular/core';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { routingProviders } from './app.routes';
-import { JwtInterceptor } from './core/jwt.interceptor';
-import { provideAnimations } from '@angular/platform-browser/animations';
+import { HttpClientModule } from '@angular/common/http';
 
 bootstrapApplication(AppComponent, {
-  providers: [
-    importProvidersFrom(HttpClientModule),
-    routingProviders,
-    provideAnimations(),
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
-  ]
+    providers: [
+        routingProviders,
+        importProvidersFrom(HttpClientModule),
+    ],
 }).catch(err => console.error(err));
