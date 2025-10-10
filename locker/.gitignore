@@ -28,6 +28,14 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+.git
+.gradle
+build
+target
+node_modules
+*.iml
+*.log
+.DS_Store
 
 ### VS Code ###
 .vscode/

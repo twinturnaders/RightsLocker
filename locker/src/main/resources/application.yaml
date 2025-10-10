@@ -1,3 +1,4 @@
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -21,7 +22,7 @@ spring:
     password: ${RABBIT_PASS}
 
 server:
-  port: 8080
+  port: 5432
 
 app:
   s3:
@@ -34,6 +35,6 @@ app:
     bucketArchive: ${S3_BUCKET_ARCHIVE:}   # empty default is fine
     pathStyle: ${S3_USE_PATH_STYLE:true}
   jwt:
-    secret: ${JWT_SECRET:dev-secret-change}
+    secret: ${JWT_SECRET}
     accessTtlSeconds: 900
     refreshTtlSeconds: 1209600
