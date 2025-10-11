@@ -1,0 +1,76 @@
+:root {
+  --reseda-green: #667761;
+  --ebony: #1b1e1b;
+  --cinereous: #90807d;
+  --rosy-brown: #b59b9a;
+  --platinum: #eae1df;
+}
+
+.skip-link {
+  position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden;
+}
+.skip-link:focus {
+  position: static; width: auto; height: auto; padding: .5rem .75rem;
+  background: var(--rosy-brown); color: #000; border-radius: .5rem; margin: .25rem;
+}
+
+rl-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--ebony);
+  color: var(--platinum);
+  border-bottom: 3px solid var(--rosy-brown);
+}
+
+rl-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: .75rem 1rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+
+.brand {
+  display: inline-flex; align-items: center; gap: .5rem; text-decoration: none; color: var(--platinum);
+  font-family: Calibri, sans-serif; font-weight: 700; letter-spacing: .3px;
+}
+.logo { display: grid; place-items: center; color: var(--rosy-brown); }
+.wordmark { font-size: 1.25rem; line-height: 1; }
+.wordmark .accent { color: var(--rosy-brown); }
+
+.menu-btn {
+  appearance: none; border: 1px solid rgba(234,225,223,.3);
+  background: transparent; color: var(--platinum);
+  padding: .5rem; border-radius: .5rem; display: none;
+}
+.menu-btn:focus { outline: 2px solid var(--rosy-brown); outline-offset: 2px; }
+.menu-icon {
+  width: 22px; height: 2px; background: currentColor; position: relative; display: inline-block;
+}
+.menu-icon::before, .menu-icon::after {
+  content: ""; position: absolute; left: 0; width: 22px; height: 2px; background: currentColor;
+}
+.menu-icon::before { top: -6px; }
+.menu-icon::after  { top: 6px; }
+
+.nav {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+.nav a, .nav .linklike {
+  color: var(--platinum); text-decoration: none; padding: .5rem .75rem; border-radius: .5rem;
+  border: 1px solid transparent; font-family: Calibri, sans-serif;
+}
+.nav a:hover, .nav .linklike:hover,
+.nav a:focus, .nav .linklike:focus {
+  background: var(--reseda-green); border-color: var(--reseda-green); outline: none;
+}
+.nav a.active {
+  background: var(--cinereous); border-color: var(--cinereous);
+}
+.nav .linklike { background: transparent; cursor: pointer; }
+
+
+@media (max-width: 800px) {
+  .menu-btn { display: inline-flex; }
+  .nav { display: none; position: absolute; left: 0; right: 0; top: 100%;
+    background: var(--ebony); padding: .75rem 1rem; border-bottom: 2px solid var(--rosy-brown); }
+  .nav.open { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+}

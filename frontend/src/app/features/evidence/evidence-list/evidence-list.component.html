@@ -1,1 +1,18 @@
-<p>evidence-list works!</p>
+
+<h2 style="margin:0 0 8px">Evidence</h2>
+<div class="card" *ngIf="page as p">
+  <div class="grid">
+    <div class="item" *ngFor="let e of p.content">
+      <div class="row gap-12">
+        <div class="thumb" [style.backgroundImage]="e.thumbnailKey ? 'url(' + thumbById(e.thumbnailKey) + ')' : ''"></div>
+        <div class="meta">
+          <div class="title">{{e.title || 'Untitled'}}</div>
+          <div class="sub">{{e.capturedAt | date:'short'}} • {{e.originalSizeB | number}} bytes</div>
+        </div>
+        <span class="spacer"></span>
+        <rl-status-chip/>
+        <a class="btn" [routerLink]="['/evidence', e.id]">Open</a>
+      </div>
+    </div>
+  </div>
+</div>

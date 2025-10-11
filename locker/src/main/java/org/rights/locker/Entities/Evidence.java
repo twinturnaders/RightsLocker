@@ -55,9 +55,12 @@ public class Evidence {
     private String originalKey; // s3 key (originals)
 
 
-    private String derivativeKey; // s3 key (hot)
-    private String thumbnailKey;
 
+    @Column(nullable = true)
+    private String thumbnailKey;  // hot bucket
+
+    @Column(nullable = true)
+    private String redactedKey;
 
     @Column(nullable = false)
     private boolean legalHold;
@@ -68,11 +71,12 @@ public class Evidence {
     @Column(nullable = false)
     private Instant updatedAt;
 
-
     @PrePersist void onCreate(){
         var now = Instant.now();
         this.createdAt = now; this.updatedAt = now;
         if (this.status == null) this.status = EvidenceStatus.RECEIVED;
     }
     @PreUpdate void onUpdate(){ this.updatedAt = Instant.now(); }
+
+
 }

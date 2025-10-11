@@ -1,0 +1,39 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="rl-header" role="banner">
+  <div class="rl-shell">
+    <a routerLink="/" class="brand" aria-label="RightsLocker Home">
+        <span class="logo" aria-hidden="true">
+
+          <svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
+            <path d="M12 2c-3.5 4.7-7 8.1-7 12.2A7 7 0 0 0 12 21a7 7 0 0 0 7-6.8C19 10.1 15.5 6.7 12 2z"
+                  fill="currentColor"/>
+          </svg>
+        </span>
+      <span class="wordmark">Rights<span class="accent">Locker</span></span>
+    </a>
+
+    <button class="menu-btn"
+            (click)="menuOpen = !menuOpen"
+            [attr.aria-expanded]="menuOpen"
+            aria-controls="primary-nav">
+      <span class="menu-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Menu</span>
+    </button>
+
+    <nav id="primary-nav" class="nav" [class.open]="menuOpen" aria-label="Primary">
+      <a routerLink="/evidence" routerLinkActive="active" (click)="closeMenu()">Evidence</a>
+      <a routerLink="/upload" routerLinkActive="active" (click)="closeMenu()">Upload</a>
+      <a routerLink="/legal" routerLinkActive="active" (click)="closeMenu()">Laws & Guidance</a>
+      <a routerLink="/about" routerLinkActive="active" (click)="closeMenu()">About</a>
+      <ng-container *ngIf="isAuthed; else loggedOut">
+        <a routerLink="/user-account" routerLinkActive="active" (click)="closeMenu()">My Account</a>
+        <button class="linklike" (click)="logout.emit(); closeMenu()">Logout</button>
+      </ng-container>
+      <ng-template #loggedOut>
+        <a routerLink="/login" routerLinkActive="active" (click)="closeMenu()">Login</a>
+        <a routerLink="/register" routerLinkActive="active" (click)="closeMenu()">Register</a>
+      </ng-template>
+    </nav>
+  </div>
+</header>
