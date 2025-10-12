@@ -56,7 +56,12 @@ public class Evidence {
 
 
     private String derivativeKey; // s3 key (hot)
+
+    @Column(nullable = true)
     private String thumbnailKey;
+
+    @Column(nullable = true)
+    private String redactedKey;
 
 
     @Column(nullable = false)
