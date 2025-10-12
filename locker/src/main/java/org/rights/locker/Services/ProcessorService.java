@@ -19,7 +19,7 @@ public class ProcessorService {
     public void publish(ProcessingJob job) {
         amqp.convertAndSend(
                 org.rights.locker.Config.RabbitConfig.EXCHANGE,
-                org.rights.locker.Config.RabbitConfig.ROUTING_JOBS,
+                org.rights.locker.Config.RabbitConfig.ROUTING,
                 new JobMessage(job.getId(), job.getType().name())
         );
     }

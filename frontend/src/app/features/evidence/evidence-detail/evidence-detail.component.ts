@@ -24,7 +24,7 @@ export class EvidenceDetailComponent {
   route = inject(ActivatedRoute);
   api = inject(EvidenceApi);
   e?: Evidence;
-
+//thumbById(id: string){ return `/api/evidence/thumb?id=${encodeURIComponent(id)}`; }
   ngOnInit(){
     const id = this.route.snapshot.paramMap.get('id')!;
     this.api.get(id).subscribe(ev => this.e = ev);
