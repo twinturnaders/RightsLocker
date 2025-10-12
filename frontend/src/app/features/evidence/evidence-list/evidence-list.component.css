@@ -1,6 +1,0 @@
-.grid{display:flex;flex-direction:column;gap:8px}
-.item{padding:10px;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
-.thumb{width:92px;height:56px;border-radius:8px;background:#0b0e18 center/cover no-repeat;border:1px solid #1f2430}
-.meta .title{font-weight:700}
-.meta .sub{color:var(--cinereous)}
-.spacer{flex:1}

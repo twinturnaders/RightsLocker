@@ -6,7 +6,6 @@ const authed = () => inject(AuthService).isAuthed$;
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'evidence' },
-  { path: 'register', loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent) },
   { path: 'evidence', loadComponent: () => import('./features/evidence/evidence-list/evidence-list.component').then(m => m.EvidenceListComponent), canActivate:[authed]},
   { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.component').then(m => m.EvidenceDetailComponent), canActivate:[authed]},
   { path: 'upload', loadComponent: () => import('./features/evidence/evidence-upload/evidence-upload.component').then(m => m.EvidenceUploadComponent), canActivate:[authed]},
