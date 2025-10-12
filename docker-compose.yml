@@ -1,4 +1,3 @@
-version: "3.9"
 
 services:
   db:
@@ -41,13 +40,13 @@ services:
 
   backend:
     build:
-      context: ./backend     # your Spring app folder with Maven Dockerfile
+      context: ./locker
       dockerfile: Dockerfile
     container_name: rl_back
     depends_on:
       db: { condition: service_healthy }
       rabbitmq: { condition: service_started }
-      # flyway: { condition: service_completed_successfully } # if using
+
     environment:
       # DB
       DB_URL: jdbc:postgresql://db:5432/rightslocker
