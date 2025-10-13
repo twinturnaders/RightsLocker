@@ -34,7 +34,16 @@ app:
     bucketHot: ${S3_BUCKET_HOT}
     bucketArchive: ${S3_BUCKET_ARCHIVE:}   # empty default is fine
     pathStyle: ${S3_USE_PATH_STYLE:true}
+
   jwt:
     secret: ${JWT_SECRET}
     accessTtlSeconds: 900
     refreshTtlSeconds: 1209600
+
+  mode: ${APP_MODE:processing}
+  retentionHours: ${RETENTION_HOURS:24}
+  storeMetadata: ${STORE_METADATA:minimal}
+  attestation:
+    enabled: ${ATTEST_ENABLED:true}
+    issuer: rightslocker.org
+    hmacSecret: ${ATTEST_HMAC_SECRET:}

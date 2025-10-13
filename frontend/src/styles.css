@@ -1,1 +1,61 @@
-/* You can add global styles to this file, and also import other style files */
+:root{
+  --black: #030405ff;
+  --brown-sugar: #9e6c59ff;
+  --platinum: #dee1dbff;
+  --cinereous: #a78b83ff;
+  --bg: var(--black);
+  --panel: #0b0d10;
+  --panel-2: #101318;
+  --text: #f6f7f8;
+  --muted: #b7bec7;
+  --brand: var(--brown-sugar);
+  --brand-2: #c78d78;
+  --ok: #22c55e; --err:#ef4444; --info:#38bdf8;
+  --radius: 14px;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+
+
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:var(--panel);border:1px solid #171b22;border-radius:var(--radius);padding:16px}
+.btn{border:1px solid #222833;background:#0f1318;color:var(--text);padding:10px 16px;border-radius:12px;cursor:pointer}
+.btn:hover{background:#121821}
+.btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border-color:#7c4f3f;color:#170e0a}
+.btn.ghost{background:transparent;border-color:#2a313c}
+.input{background:#0e1319;border:1px solid #1a212c;border-radius:10px;padding:11px 12px;color:var(--text);width:100%}
+.label{font-weight:600;margin:6px 0 4px}
+.link{color:var(--brand-2);text-decoration:none}
+.link:hover{text-decoration:underline}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#171b22;border:1px solid #232a35;color:#eaeff5}
+
+
+/* Simple grid helpers */
+.grid{display:grid;gap:12px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+
+
+/* Toasts (reuse if you already added) */
+.toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:1000}
+.toast{display:flex;align-items:center;gap:10px;min-width:280px;max-width:420px;background:var(--panel);border:1px solid #232a35;padding:10px 12px;border-radius:12px;color:#e5e7eb;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.toast.ok{border-color:#14532d}.toast.err{border-color:#7f1d1d}.toast.info{border-color:#0c4a6e}
+
+
+/* Form frame */
+.form{max-width:520px;margin:auto}
+.form h2{margin:4px 0 12px}
+.form .row{display:flex;gap:10px}
+.help{color:var(--muted);font-size:12px}
+
+
+/* Public hero */
+.hero{background:var(--panel-2);border:1px solid #1a212c;border-radius:16px;padding:16px}
+.hero h1{margin:0 0 6px}
+.hero p{color:var(--muted);margin:0 0 8px}
+
+
+/* Table-ish blocks */
+.kv{display:grid;grid-template-columns:200px 1fr;gap:6px}
+.kv div{padding:6px 0;border-bottom:1px solid #1a212c}
