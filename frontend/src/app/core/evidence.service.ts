@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
-import {environment} from '../../../environments/environment';
+import {environment} from '../../environments/environment';
 
 export interface Evidence {
   id: string; title?: string; description?: string; capturedAt?: string;

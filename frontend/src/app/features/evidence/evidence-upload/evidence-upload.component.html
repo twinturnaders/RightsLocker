@@ -1,1 +1,4 @@
-<p>evidence-upload works!</p>
+<h2>Upload Evidence</h2>
+<input type="file" (change)="onFile($event)">
+<div *ngIf="progress>0">Uploading: {{progress}}%</div>
+<p *ngIf="msg">{{msg}}</p>

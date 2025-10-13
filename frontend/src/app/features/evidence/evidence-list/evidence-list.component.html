@@ -1,1 +1,11 @@
-<p>evidence-list works!</p>
+<h2>Evidence</h2>
+<div class="grid" *ngIf="items as page">
+  <div class="card" *ngFor="let e of page.content">
+    <div class="row">
+      <div class="title">{{e.title || 'Untitled'}}</div>
+      <span class="status">{{e.status}}</span>
+    </div>
+    <div class="meta">Captured: {{e.capturedAt | date:'short'}} • Legal hold: {{e.legalHold}}</div>
+    <a [routerLink]="['/evidence', e.id]">Open</a>
+  </div>
+</div>

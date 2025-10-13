@@ -1,1 +1,7 @@
-<p>login works!</p>
+<h2>Login</h2>
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <label>Email<input formControlName="email" type="email" required></label>
+  <label>Password<input formControlName="password" type="password" required></label>
+  <button type="submit" [disabled]="form.invalid || loading">Login</button>
+</form>
+<p *ngIf="error" style="color:#c00">{{error}}</p>

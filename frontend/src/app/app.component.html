@@ -1,0 +1,21 @@
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">RightsLocker</div>
+    <nav>
+      <a routerLink="/evidence" routerLinkActive="active">Evidence</a>
+      <a routerLink="/upload" routerLinkActive="active">Upload</a>
+      <a routerLink="/legal" routerLinkActive="active">Laws & Guidance</a>
+      <a routerLink="/about" routerLinkActive="active">About</a>
+    </nav>
+  </aside>
+
+  <section class="main">
+    <header class="topbar">
+      <input placeholder="Search evidence…" />
+      <div class="spacer"></div>
+      <button *ngIf="!(auth.isAuthed$ | async)" (click)="auth.demoLogin()">Demo Login</button>
+      <button *ngIf="auth.isAuthed$ | async" (click)="auth.logout()">Logout</button>
+    </header>
+    <div class="content"><router-outlet></router-outlet></div>
+  </section>
+</div>

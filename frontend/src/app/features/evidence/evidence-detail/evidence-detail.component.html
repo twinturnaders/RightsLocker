@@ -1,1 +1,10 @@
-<p>evidence-detail works!</p>
+<ng-container *ngIf="e as ev">
+  <h2>{{ev.title || 'Untitled'}}</h2>
+  <p>{{ev.description}}</p>
+  <p>Captured: {{ev.capturedAt | date:'long'}}</p>
+  <p>Status: <b>{{ev.status}}</b></p>
+  <label><input type="checkbox" [checked]="ev.legalHold" (change)="toggleHold($event)"> Legal Hold</label>
+  <div style="margin-top:12px">
+    <button (click)="download()">Download</button>
+  </div>
+</ng-container>

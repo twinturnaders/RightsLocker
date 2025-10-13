@@ -1,0 +1,2 @@
+.bar{height:10px;background:#0b0f1a;border:1px solid #1f2430;border-radius:999px;overflow:hidden;margin-top:12px}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-2))}

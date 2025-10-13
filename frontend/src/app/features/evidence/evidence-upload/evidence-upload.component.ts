@@ -1,17 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { EvidenceApi} from '../../../core/evidence.service/evidence.service.component';
+import { EvidenceApi} from '../../../core/evidence.service';
 import { NgIf } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-upload',
   imports: [NgIf],
-  template: `
-  <h2>Upload Evidence</h2>
-  <input type="file" (change)="onFile($event)">
-  <div *ngIf="progress>0">Uploading: {{progress}}%</div>
-  <p *ngIf="msg">{{msg}}</p>
-  `
+  templateUrl: 'evidence-upload.component.html',
 })
 export class EvidenceUploadComponent {
   api = inject(EvidenceApi);

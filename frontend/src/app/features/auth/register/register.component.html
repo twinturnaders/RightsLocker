@@ -1,0 +1,30 @@
+<div class="container">
+  <div class="form card">
+    <h2>Create your account</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="label">Email</label>
+      <input class="input" formControlName="email" type="email" placeholder="you@example.com">
+      <div *ngIf="email.invalid && (email.dirty || email.touched)" style="color:var(--err)">Valid email required</div>
+
+
+      <label class="label">Display name</label>
+      <input class="input" formControlName="displayName" placeholder="Your name">
+
+
+      <label class="label">Password</label>
+      <input class="input" formControlName="password" type="password" placeholder="••••••••">
+
+
+      <label class="label">Confirm password</label>
+      <input class="input" formControlName="confirm" type="password" placeholder="••••••••">
+      <div *ngIf="form.errors?.['mismatch'] && (form.dirty || form.touched)" style="color:var(--err)">Passwords do not match</div>
+
+
+      <div class="row" style="display:flex;gap:8px;align-items:center;margin-top:12px">
+        <button class="btn primary" type="submit" [disabled]="form.invalid || loading">Create account</button>
+        <a routerLink="/login" class="btn ghost">Back to login</a>
+        <span style="margin-left:auto;color:var(--err)" *ngIf="error">{{error}}</span>
+      </div>
+    </form>
+  </div>
+</div>

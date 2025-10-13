@@ -1,16 +1,15 @@
-import { Component, inject } from '@angular/core';
-import { HttpClient, HttpEventType } from '@angular/common/http';
-import { NgIf } from '@angular/common';
-
+import {Component, inject} from '@angular/core';
+import {HttpClient, HttpEventType} from '@angular/common/http';
+import {FormsModule} from '@angular/forms';
 
 @Component({
-  standalone: true,
-  selector: 'rl-convert',
-  imports: [NgIf],
-  templateUrl: 'convert.component.html',
-  styleUrls: ['convert.component.css']
+  selector: 'app-convert',
+  imports: [
+    FormsModule
+  ],
+  templateUrl: './convert.component.html',
+  styleUrl: './convert.component.css'
 })
-
 export class ConvertComponent{
   http=inject(HttpClient);
   file?:File; blur=true; uploading=false; progress=0; ok=false; msg=''; readyUrl='';

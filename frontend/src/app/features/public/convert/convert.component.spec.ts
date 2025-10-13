@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { JwtInterceptorComponent } from './jwt.interceptor.component';
+import { ConvertComponent } from './convert.component';
 
-describe('JwtInterceptorComponent', () => {
-  let component: JwtInterceptorComponent;
-  let fixture: ComponentFixture<JwtInterceptorComponent>;
+describe('ConvertComponent', () => {
+  let component: ConvertComponent;
+  let fixture: ComponentFixture<ConvertComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [JwtInterceptorComponent]
+      imports: [ConvertComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(JwtInterceptorComponent);
+    fixture = TestBed.createComponent(ConvertComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

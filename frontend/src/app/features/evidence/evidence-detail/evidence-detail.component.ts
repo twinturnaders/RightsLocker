@@ -1,24 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AsyncPipe, DatePipe, NgIf } from '@angular/common';
-import {Evidence, EvidenceApi} from '../../../core/evidence.service/evidence.service.component';
+import {Evidence, EvidenceApi} from '../../../core/evidence.service';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
   imports: [NgIf, DatePipe],
-  template: `
-  <ng-container *ngIf="e as ev">
-    <h2>{{ev.title || 'Untitled'}}</h2>
-    <p>{{ev.description}}</p>
-    <p>Captured: {{ev.capturedAt | date:'long'}}</p>
-    <p>Status: <b>{{ev.status}}</b></p>
-    <label><input type="checkbox" [checked]="ev.legalHold" (change)="toggleHold($event)"> Legal Hold</label>
-    <div style="margin-top:12px">
-      <button (click)="download()">Download</button>
-    </div>
-  </ng-container>
-  `
+  templateUrl: './evidence-detail.component.html',
+
 })
 export class EvidenceDetailComponent {
   route = inject(ActivatedRoute);
