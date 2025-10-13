@@ -3,10 +3,6 @@
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
 
---
--- TOC entry 1657 (class 1247 OID 24683)
--- Name: custody_event_type; Type: TYPE; Schema: public; Owner: -
---
 
 CREATE TYPE public.custody_event_type AS ENUM (
     'RECEIVED',
@@ -20,10 +16,6 @@ CREATE TYPE public.custody_event_type AS ENUM (
 );
 
 
---
--- TOC entry 1642 (class 1247 OID 24619)
--- Name: evidence_status; Type: TYPE; Schema: public; Owner: -
---
 
 CREATE TYPE public.evidence_status AS ENUM (
     'RECEIVED',
@@ -34,10 +26,7 @@ CREATE TYPE public.evidence_status AS ENUM (
 );
 
 
---
--- TOC entry 1651 (class 1247 OID 24656)
--- Name: job_status; Type: TYPE; Schema: public; Owner: -
---
+
 
 CREATE TYPE public.job_status AS ENUM (
     'QUEUED',
@@ -47,10 +36,7 @@ CREATE TYPE public.job_status AS ENUM (
 );
 
 
---
--- TOC entry 1648 (class 1247 OID 24647)
--- Name: job_type; Type: TYPE; Schema: public; Owner: -
---
+
 
 CREATE TYPE public.job_type AS ENUM (
     'TRANSCODE',
@@ -60,10 +46,7 @@ CREATE TYPE public.job_type AS ENUM (
 );
 
 
---
--- TOC entry 223 (class 1259 OID 24591)
--- Name: app_user; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.app_user (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -76,10 +59,7 @@ CREATE TABLE public.app_user (
 );
 
 
---
--- TOC entry 229 (class 1259 OID 24739)
--- Name: coc_report; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.coc_report (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -90,10 +70,7 @@ CREATE TABLE public.coc_report (
 );
 
 
---
--- TOC entry 227 (class 1259 OID 24699)
--- Name: custody_event; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.custody_event (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -105,10 +82,7 @@ CREATE TABLE public.custody_event (
 );
 
 
---
--- TOC entry 225 (class 1259 OID 24629)
--- Name: evidence; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.evidence (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -130,10 +104,6 @@ CREATE TABLE public.evidence (
 );
 
 
---
--- TOC entry 226 (class 1259 OID 24665)
--- Name: processing_job; Type: TABLE; Schema: public; Owner: -
---
 
 CREATE TABLE public.processing_job (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -148,10 +118,7 @@ CREATE TABLE public.processing_job (
 );
 
 
---
--- TOC entry 228 (class 1259 OID 24718)
--- Name: share_link; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.share_link (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -164,10 +131,7 @@ CREATE TABLE public.share_link (
 );
 
 
---
--- TOC entry 224 (class 1259 OID 24604)
--- Name: user_session; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.user_session (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -178,10 +142,7 @@ CREATE TABLE public.user_session (
 );
 
 
---
--- TOC entry 230 (class 1259 OID 24753)
--- Name: webhook_event; Type: TABLE; Schema: public; Owner: -
---
+
 
 CREATE TABLE public.webhook_event (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -194,213 +155,127 @@ CREATE TABLE public.webhook_event (
 );
 
 
---
--- TOC entry 5721 (class 2606 OID 24603)
--- Name: app_user app_user_email_key; Type: CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.app_user
     ADD CONSTRAINT app_user_email_key UNIQUE (email);
 
 
---
--- TOC entry 5723 (class 2606 OID 24601)
--- Name: app_user app_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.app_user
     ADD CONSTRAINT app_user_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5742 (class 2606 OID 24747)
--- Name: coc_report coc_report_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.coc_report
     ADD CONSTRAINT coc_report_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5735 (class 2606 OID 24707)
--- Name: custody_event custody_event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.custody_event
     ADD CONSTRAINT custody_event_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5729 (class 2606 OID 24640)
--- Name: evidence evidence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.evidence
     ADD CONSTRAINT evidence_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5732 (class 2606 OID 24676)
--- Name: processing_job processing_job_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.processing_job
     ADD CONSTRAINT processing_job_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5737 (class 2606 OID 24726)
--- Name: share_link share_link_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.share_link
     ADD CONSTRAINT share_link_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5740 (class 2606 OID 24728)
--- Name: share_link share_link_token_key; Type: CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.share_link
     ADD CONSTRAINT share_link_token_key UNIQUE (token);
 
 
---
--- TOC entry 5725 (class 2606 OID 24612)
--- Name: user_session user_session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.user_session
     ADD CONSTRAINT user_session_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5744 (class 2606 OID 24761)
--- Name: webhook_event webhook_event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.webhook_event
     ADD CONSTRAINT webhook_event_pkey PRIMARY KEY (id);
 
 
---
--- TOC entry 5733 (class 1259 OID 24765)
--- Name: custody_event_evidence_id_idx; Type: INDEX; Schema: public; Owner: -
---
+
 
 CREATE INDEX custody_event_evidence_id_idx ON public.custody_event USING btree (evidence_id);
 
 
---
--- TOC entry 5726 (class 1259 OID 24764)
--- Name: evidence_captured_at_idx; Type: INDEX; Schema: public; Owner: -
---
 
 CREATE INDEX evidence_captured_at_idx ON public.evidence USING btree (captured_at);
 
 
---
--- TOC entry 5727 (class 1259 OID 24762)
--- Name: evidence_owner_user_id_idx; Type: INDEX; Schema: public; Owner: -
---
+
 
 CREATE INDEX evidence_owner_user_id_idx ON public.evidence USING btree (owner_user_id);
 
 
---
--- TOC entry 5730 (class 1259 OID 24763)
--- Name: evidence_status_idx; Type: INDEX; Schema: public; Owner: -
---
+
 
 CREATE INDEX evidence_status_idx ON public.evidence USING btree (status);
 
 
---
--- TOC entry 5738 (class 1259 OID 24766)
--- Name: share_link_token_idx; Type: INDEX; Schema: public; Owner: -
---
+
 
 CREATE INDEX share_link_token_idx ON public.share_link USING btree (token);
 
 
---
--- TOC entry 5752 (class 2606 OID 24748)
--- Name: coc_report coc_report_evidence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.coc_report
     ADD CONSTRAINT coc_report_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES public.evidence(id) ON DELETE CASCADE;
 
 
---
--- TOC entry 5748 (class 2606 OID 24713)
--- Name: custody_event custody_event_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.custody_event
     ADD CONSTRAINT custody_event_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES public.app_user(id);
 
 
---
--- TOC entry 5749 (class 2606 OID 24708)
--- Name: custody_event custody_event_evidence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.custody_event
     ADD CONSTRAINT custody_event_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES public.evidence(id) ON DELETE CASCADE;
 
 
---
--- TOC entry 5746 (class 2606 OID 24641)
--- Name: evidence evidence_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
 ALTER TABLE ONLY public.evidence
     ADD CONSTRAINT evidence_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.app_user(id) ON DELETE SET NULL;
 
 
---
--- TOC entry 5747 (class 2606 OID 24677)
--- Name: processing_job processing_job_evidence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.processing_job
     ADD CONSTRAINT processing_job_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES public.evidence(id) ON DELETE CASCADE;
 
 
---
--- TOC entry 5750 (class 2606 OID 24734)
--- Name: share_link share_link_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.share_link
     ADD CONSTRAINT share_link_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.app_user(id) ON DELETE CASCADE;
 
 
---
--- TOC entry 5751 (class 2606 OID 24729)
--- Name: share_link share_link_evidence_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
 ALTER TABLE ONLY public.share_link
     ADD CONSTRAINT share_link_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES public.evidence(id) ON DELETE CASCADE;
 
 
---
--- TOC entry 5745 (class 2606 OID 24613)
--- Name: user_session user_session_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
+
 
 ALTER TABLE ONLY public.user_session
     ADD CONSTRAINT user_session_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
 
-
--- Completed on 2025-10-09 13:17:48
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict aaiLbzQmfhRIjAeCMAqozaR1RcpUQrGa8Z9IINgwcnxhcO2HNEVhHwF78p2uoCc
 
