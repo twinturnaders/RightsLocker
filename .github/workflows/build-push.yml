@@ -42,3 +42,32 @@ jobs:
           pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    runs-on: ubuntu-latest # Run this job on the latest Ubuntu version
+    needs: build-and-push
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2 # Check out your repository code
+
+      - name: SSH and run commands
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }} # Reference the private key stored in GitHub Secrets
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem # Write the private key to a file
+          chmod 600 private_key.pem # Set the appropriate permissions for the key file
+
+          # Establish an SSH connection and execute commands on the remote server
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $SSH_USER <<EOF
+
+            cd  ~/apps/rightslocker
+            ./deploy.sh
+          EOF
+
+          rm -f private_key.pem # Remove the private key file after use for security
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
