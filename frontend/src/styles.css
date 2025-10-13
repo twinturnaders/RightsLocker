@@ -1,13 +1,13 @@
 :root{
-  --black: #030405ff;
+  --black: #ccd0d0;
   --brown-sugar: #9e6c59ff;
   --platinum: #dee1dbff;
   --cinereous: #a78b83ff;
   --bg: var(--black);
-  --panel: #0b0d10;
-  --panel-2: #101318;
-  --text: #f6f7f8;
-  --muted: #b7bec7;
+  --panel: #dee1db;
+  --panel-2: #a78b83;
+  --text: #000000;
+  --muted: #2b302b;
   --brand: var(--brown-sugar);
   --brand-2: #c78d78;
   --ok: #22c55e; --err:#ef4444; --info:#38bdf8;

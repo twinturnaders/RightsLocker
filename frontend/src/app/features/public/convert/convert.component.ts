@@ -1,11 +1,13 @@
 import {Component, inject} from '@angular/core';
 import {HttpClient, HttpEventType} from '@angular/common/http';
 import {FormsModule} from '@angular/forms';
+import {NgIf} from '@angular/common';
 
 @Component({
   selector: 'app-convert',
   imports: [
-    FormsModule
+    FormsModule,
+    NgIf
   ],
   templateUrl: './convert.component.html',
   styleUrl: './convert.component.css'
