@@ -31,7 +31,7 @@ jobs:
         with:
           images: ${{ matrix.image }}
           tags: |
-            type=sha-<shortsha>
+            type=sha
             type=ref,event=branch
             type=raw,value=v1
             type=raw,value=latest,enable={{is_default_branch}}
