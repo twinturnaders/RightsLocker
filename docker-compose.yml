@@ -48,7 +48,6 @@ services:
       rabbitmq: { condition: service_started }
 
     environment:
-      # DB
       DB_URL: jdbc:postgresql://db:5432/rightslocker
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
@@ -69,8 +68,14 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       # Spring profile
       SPRING_PROFILES_ACTIVE: prod
-    networks: [ app-net ]
+        - JAVA_TOOL_OPTIONS=-XX:+UseG1GC -Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m
 
+    networks: [ app-net ]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "0.75"
   frontend:
     build:
       context: ./frontend    # Angular app folder
@@ -88,3 +93,5 @@ volumes:
 networks:
   app-net:
     driver: bridge
+
+
