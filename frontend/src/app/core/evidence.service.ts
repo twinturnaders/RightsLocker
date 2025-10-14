@@ -13,7 +13,7 @@ export interface Evidence {
 @Injectable({ providedIn: 'root' })
 export class EvidenceApi {
   private http = inject(HttpClient);
-  base = `${environment.apiBase}/api/evidence`;
+  base = `${environment.apiBase}/evidence`;
 
   list(opts: {status?: string, page?: number, size?: number} = {}){
     let params = new HttpParams();
