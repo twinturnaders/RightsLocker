@@ -24,7 +24,7 @@ RUN addgroup -S app && adduser -S app -G app
 USER app
 
 # copy the built jar (assumes a single jar is produced)
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /src/target/*-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --retries=10 \
