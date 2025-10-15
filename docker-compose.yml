@@ -31,7 +31,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
     command: >
-      -X -url=jdbc:postgresql://db:5432/rightslocker
+      -X -url=jdbc:postgresql://db:8080/rightslocker
       -user=${DB_USER} -password=${DB_PASS}
       -locations=filesystem:/flyway/sql migrate
     volumes:
