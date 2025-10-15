@@ -26,17 +26,17 @@ services:
     networks: [ app-net ]
 
   # optional: one-shot flyway to apply migration
-  flyway:
-    image: flyway/flyway:10
-    depends_on:
-      db: { condition: service_healthy }
-    command: >
-      -X -url=jdbc:postgresql://db:5432/rightslocker
-      -user=${DB_USER} -password=${DB_PASS}
-      -locations=filesystem:/flyway/sql migrate
-    volumes:
-      - ./db/migration:/flyway/sql:ro
-    networks: [ app-net ]
+#  flyway:
+#    image: flyway/flyway:10
+#    depends_on:
+#      db: { condition: service_healthy }
+#    command: >
+#      -X -url=jdbc:postgresql://db:5432/rightslocker
+#      -user=${DB_USER} -password=${DB_PASS}
+#      -locations=filesystem:/flyway/sql migrate
+#    volumes:
+#      - docker-flyway.config
+#    networks: [ app-net ]
 
   backend:
     build:
@@ -46,11 +46,12 @@ services:
     depends_on:
       db: { condition: service_healthy }
       rabbitmq: { condition: service_started }
-
+    env_file: [ .env ]
     environment:
-      DB_URL: jdbc:postgresql://db:8080/rightslocker
+      DB_URL: jdbc:postgresql://db:5432/rightslocker
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      SERVER_PORT: 8080
       # S3 / Spaces
       S3_ENDPOINT: https://sfo3.digitaloceanspaces.com
       S3_REGION: sfo3
@@ -69,7 +70,15 @@ services:
       # Spring profile
       SPRING_PROFILES_ACTIVE: prod
         - JAVA_TOOL_OPTIONS=-XX:+UseG1GC -Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m
+    ports:
+        - "8080:8080"
 
+    healthcheck:
+        test: [ "CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health" ]
+        interval: 15s
+        timeout: 3s
+        retries: 10
+        start_period: 20s
     networks: [ app-net ]
     deploy:
       resources:
