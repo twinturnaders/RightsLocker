@@ -25,7 +25,7 @@ services:
       - "15672:15672"     # UI
     networks: [ app-net ]
 
-  # optional: one-shot flyway to apply migrations
+  # optional: one-shot flyway to apply migration
   flyway:
     image: flyway/flyway:10
     depends_on:
