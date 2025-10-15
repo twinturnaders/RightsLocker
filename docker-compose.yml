@@ -26,17 +26,17 @@ services:
     networks: [ app-net ]
 
   # optional: one-shot flyway to apply migrations
-  flyway:
-    image: flyway/flyway:10
-    depends_on:
-      db: { condition: service_healthy }
-    command: >
-      -X -url=jdbc:postgresql://db:8080/rightslocker
-      -user=${DB_USER} -password=${DB_PASS}
-      -locations=filesystem:/flyway/sql migrate
-    volumes:
-      - ./db/migration:/flyway/sql:ro
-    networks: [ app-net ]
+#  flyway:
+#    image: flyway/flyway:10
+#    depends_on:
+#      db: { condition: service_healthy }
+#    command: >
+#      -X -url=jdbc:postgresql://db:8080/rightslocker
+#      -user=${DB_USER} -password=${DB_PASS}
+#      -locations=filesystem:/flyway/sql migrate
+#    volumes:
+#      - ./db/migration:/flyway/sql:ro
+#    networks: [ app-net ]
 
   backend:
     build:
@@ -48,7 +48,7 @@ services:
       rabbitmq: { condition: service_started }
 
     environment:
-      DB_URL: jdbc:postgresql://db:5432/rightslocker
+      DB_URL: jdbc:postgresql://db:8080/rightslocker
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       # S3 / Spaces
