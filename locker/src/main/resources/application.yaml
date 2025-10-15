@@ -22,7 +22,7 @@ spring:
     password: ${RABBIT_PASS}
 
 server:
-  port: 5432
+  port: 8080
 
 app:
   s3:
