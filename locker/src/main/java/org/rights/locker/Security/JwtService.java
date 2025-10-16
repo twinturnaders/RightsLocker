@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.rights.locker.Entities.AppUser;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -19,7 +20,7 @@ public class JwtService {
     private final JwtProps props;
     private final SecretKey key;
 
-    public JwtService(JwtProps props){
+    public JwtService(@Qualifier("jwtProps") JwtProps props){
         this.props = props;
         this.key = Keys.hmacShaKeyFor(props.getSecret().getBytes(StandardCharsets.UTF_8));
     }
