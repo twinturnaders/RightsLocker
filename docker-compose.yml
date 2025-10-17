@@ -30,13 +30,11 @@ services:
     image: flyway/flyway:10
     depends_on:
       db: { condition: service_healthy }
-    command: >
-      -X -url=jdbc:postgresql://db:5432/rightslocker
-      -user=${DB_USER} -password=${DB_PASS}
-      -locations=filesystem:/flyway/sql migrate
-    volumes:
+    locations: "classpath:db/migration,filesystem:/opt/migration"
+
+  volumes:
       - migration:/flyway/sql:ro
-    networks: [ app-net ]
+
 
   backend:
     build:

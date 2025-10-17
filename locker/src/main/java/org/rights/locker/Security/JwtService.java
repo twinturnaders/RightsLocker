@@ -1,59 +1,48 @@
 package org.rights.locker.Security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.rights.locker.Entities.AppUser;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
+
     private final JwtProps props;
-    private final SecretKey key;
+    private final byte[] secretKey; // cached, derived once
 
-    public JwtService(@Qualifier("jwtProps") JwtProps props){
+    public JwtService(JwtProps props) {
         this.props = props;
-        this.key = Keys.hmacShaKeyFor(props.getSecret().getBytes(StandardCharsets.UTF_8));
+        // ① Derive a stable MAC key from the configured secret once
+        this.secretKey = props.secret().getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
-    public String createAccessToken(AppUser user){
+    public String issueAccessToken(String subject) {
+        // ② Compute now/exp using configured TTL
         Instant now = Instant.now();
+        Instant exp = now.plusSeconds(props.accessTtlSeconds());
+
+        // ③ Build a compact JWT signed with HS256
         return Jwts.builder()
-                .id(UUID.randomUUID().toString())
-                .subject(user.getEmail())
-                .claims(Map.of("role", user.getRole()))
+                .subject(subject)
+                .issuer(props.issuer())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusSeconds(props.getAccessTtlSeconds())))
-                .signWith(key) // algorithm inferred
+                .expiration(Date.from(exp))
+                .signWith(Keys.hmacShaKeyFor(secretKey))
                 .compact();
     }
 
-    public String createRefreshToken(AppUser user){
+    public String issueRefreshToken(String subject) {
         Instant now = Instant.now();
+        Instant exp = now.plusSeconds(props.refreshTtlSeconds());
         return Jwts.builder()
-                .id(UUID.randomUUID().toString())
-                .subject(user.getEmail())
-                .claim("typ", "refresh")
+                .subject(subject)
+                .issuer(props.issuer())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusSeconds(props.getRefreshTtlSeconds())))
-                .signWith(key)
+                .expiration(Date.from(exp))
+                .signWith(Keys.hmacShaKeyFor(secretKey))
                 .compact();
-    }
-
-    public Jws<Claims> parse(String token){
-        // New parser API in 0.12.x
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token);
     }
 }
