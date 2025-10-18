@@ -38,10 +38,7 @@ app:
     bucketArchive: ${S3_BUCKET_ARCHIVE:}   # empty default is fine
     pathStyle: ${S3_USE_PATH_STYLE:true}
 
-  jwt:
-    secret: ${JWT_SECRET}
-    accessTtlSeconds: 900
-    refreshTtlSeconds: 1209600
+
 
   mode: ${APP_MODE:processing}
   retentionHours: ${RETENTION_HOURS:24}
@@ -50,3 +47,7 @@ app:
     enabled: ${ATTEST_ENABLED:true}
     issuer: rightslocker
     hmacSecret: ${ATTEST_HMAC_SECRET:}
+jwt:
+    secret: ${JWT_SECRET}
+    accessTtlSeconds: 900
+    refreshTtlSeconds: 1209600
