@@ -40,14 +40,16 @@ app:
 
 
 
+
   mode: ${APP_MODE:processing}
   retentionHours: ${RETENTION_HOURS:24}
   storeMetadata: ${STORE_METADATA:minimal}
   attestation:
     enabled: ${ATTEST_ENABLED:true}
-    issuer: rightslocker
+
     hmacSecret: ${ATTEST_HMAC_SECRET:}
 jwt:
     secret: ${JWT_SECRET}
     accessTtlSeconds: 900
     refreshTtlSeconds: 1209600
+    issuer: rightslocker
