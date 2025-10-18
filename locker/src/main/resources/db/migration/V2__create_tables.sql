@@ -1,3 +1,13 @@
+DO $$
+    BEGIN
+
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'custody_event_type') THEN
+            CREATE TYPE custody_event_type AS ENUM ('BOOKED','TRANSFERRED','RELEASED'); -- adjust values
+        END IF;
+    END $$;
+
+
+
 CREATE TABLE app_user
 (
     id            CHAR(36)                    DEFAULT gen_random_uuid() NOT NULL,
