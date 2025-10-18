@@ -2,6 +2,8 @@ package org.rights.locker.Config;
 
 import lombok.RequiredArgsConstructor;
 import org.rights.locker.Security.JwtAuthenticationFilter;
+import org.rights.locker.Security.JwtService;
+import org.rights.locker.Services.CurrentUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,29 +18,35 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtFilter;
-
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**", "/api/auth/**", "/api/share/**").permitAll()
+                .cors(c -> {}) // configure a CorsConfigurationSource bean if needed
+                .csrf(csrf -> csrf.disable()) // stateless API with Authorization header
+                .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
+                .authorizeHttpRequests(reg -> reg
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
-
+    @Bean
+    JwtAuthenticationFilter jwtAuthFilter(JwtService jwtService, CurrentUserService currentUserService) {
+        return new JwtAuthenticationFilter(jwtService, currentUserService);
+    }
     @Bean
     PasswordEncoder passwordEncoder(){ return new BCryptPasswordEncoder(); }
     @Bean
