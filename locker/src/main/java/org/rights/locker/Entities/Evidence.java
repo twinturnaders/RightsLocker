@@ -35,7 +35,7 @@ public class Evidence {
     private Point captureLatlon;
 
 
-    private Double captureAccuracyM;
+    private Double captureAccuracy;
 
 
     @Enumerated(EnumType.STRING)
