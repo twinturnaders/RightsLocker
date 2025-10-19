@@ -12,6 +12,7 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ShareLink {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
@@ -23,17 +24,17 @@ public class ShareLink {
     private AppUser createdBy;
 
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, name = "token")
     private String token;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name= "expires_at")
     private Instant expiresAt;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "allow_original")
     private boolean allowOriginal;
 
-
+    @Column(name = "revoked_at")
     private Instant revokedAt;
 }

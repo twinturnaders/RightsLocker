@@ -15,6 +15,7 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CustodyEvent {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
@@ -31,11 +32,11 @@ public class CustodyEvent {
     private CustodyEventType eventType;
 
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "jsonb", name = "meta_Json")
     private String metaJson;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
 
 

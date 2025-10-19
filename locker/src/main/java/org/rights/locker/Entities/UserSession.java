@@ -12,6 +12,7 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserSession {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
@@ -19,15 +20,15 @@ public class UserSession {
     private AppUser user;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "jwt_id")
     private String jwtId;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "expires_at")
     private Instant expiresAt;
 
 

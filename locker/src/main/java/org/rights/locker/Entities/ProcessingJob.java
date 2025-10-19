@@ -16,6 +16,7 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProcessingJob {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
@@ -24,30 +25,30 @@ public class ProcessingJob {
 
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "type")
     private JobType type;
 
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "status")
     private JobStatus status;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "attempts")
     private int attempts;
 
 
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "text", name = "error_msg")
     private String errorMsg;
 
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "jsonb", name = "payload_json")
     private String payloadJson;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
-    @Column(nullable = false)
+    @Column(nullable = false, name = "updated_at")
     private Instant updatedAt;
 
 

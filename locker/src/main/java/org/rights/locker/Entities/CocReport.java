@@ -13,6 +13,7 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CocReport {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
@@ -20,15 +21,15 @@ public class CocReport {
     private Evidence evidence;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "pdf_key")
     private String pdfKey;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "sha256")
     private String sha256;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
 
 

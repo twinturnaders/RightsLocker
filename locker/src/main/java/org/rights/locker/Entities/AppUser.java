@@ -14,29 +14,30 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AppUser {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, name = "email")
     private String email;
 
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-
+    @Column(name = "display_name")
     private String displayName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "role")
     private Role role; // USER, MOD, ADMIN
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "updated_at")
     private Instant updatedAt;
 
 

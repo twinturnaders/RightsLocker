@@ -11,28 +11,29 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class WebhookEvent {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "provider")
     private String provider;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "event_type")
     private String eventType;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "external_id")
     private String externalId;
 
 
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "jsonb", nullable = false, name = "payload_json")
     private String payloadJson;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "processed")
     private boolean processed;
 
-
+    @Column(name="processed_at")
     private Instant processedAt;
 }

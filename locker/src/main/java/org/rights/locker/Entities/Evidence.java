@@ -17,60 +17,62 @@ import java.util.UUID;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Evidence {
     @Id @GeneratedValue
+    @Column(name = "id")
     private UUID id;
 
 
     @ManyToOne @JoinColumn(name = "owner_user_id")
     private AppUser owner;
 
-
+    @Column(name="title")
     private String title;
+    @Column(name="description")
     private String description;
 
-
+    @Column(name = "captured_at")
     private Instant capturedAt;
 
 
     @Column(columnDefinition = "geography(Point,4326)")
     private Point captureLatlon;
 
-
-    private Double captureAccuracy;
+    @Column(name="capture_accuracy_m")
+    private Double captureAccuracyM;
 
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "status")
     private EvidenceStatus status;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "original_sha256")
     private String originalSha256;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "original_size_b")
     private Long originalSizeB;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "original_key")
     private String originalKey; // s3 key (originals)
 
-
+    @Column(name = "derivative_key")
     private String derivativeKey; // s3 key (hot)
 
-    @Column(nullable = true)
+    @Column(nullable = true, name = "thumbnail_key")
     private String thumbnailKey;
 
-    @Column(nullable = true)
+    @Column(nullable = true, name = "redacted_key")
     private String redactedKey;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name= "legal_hold")
     private boolean legalHold;
 
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     private Instant createdAt;
-    @Column(nullable = false)
+    @Column(nullable = false, name = "updated_at")
     private Instant updatedAt;
 
 
