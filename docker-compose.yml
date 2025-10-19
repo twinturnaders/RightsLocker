@@ -26,14 +26,10 @@ services:
     networks: [ app-net ]
 
   # optional: one-shot flyway to apply migration
-  flyway:
-    image: flyway/flyway:10
-    depends_on:
-      db: { condition: service_healthy }
-    locations: "classpath:db/migration,filesystem:/opt/migration"
-
-  volumes:
-      - migration:/flyway/sql:ro
+#  flyway:
+#    image: flyway/flyway:10
+#    depends_on:
+#      db: { condition: service_healthy }
 
 
   backend:
