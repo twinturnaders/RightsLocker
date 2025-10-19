@@ -8,6 +8,7 @@ import org.locationtech.jts.geom.Point;
 import org.rights.locker.Enums.EvidenceStatus;
 
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -37,7 +38,7 @@ public class Evidence {
     private Point captureLatlon;
 
     @Column(name="capture_accuracy_m")
-    private Double captureAccuracyM;
+    private BigDecimal captureAccuracyM;
 
 
     @Enumerated(EnumType.STRING)
