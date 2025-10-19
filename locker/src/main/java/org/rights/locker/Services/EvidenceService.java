@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
@@ -49,7 +50,7 @@ public class EvidenceService {
                     .title(title).description(description)
                     .capturedAt(capturedAt)
                     .captureLatlon(point)
-                    .captureAccuracyM(accuracy)
+                    .captureAccuracyM(BigDecimal.valueOf(accuracy))
                     .status(EvidenceStatus.RECEIVED)
                     .originalSha256(sha)
                     .originalSizeB((long) bytes.length)
