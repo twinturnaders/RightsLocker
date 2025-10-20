@@ -12,7 +12,7 @@
 #
 #COPY --from=build /app/target/*.jar app.jar
 #
-#EXPOSE 8080
+#EXPOSE 808
 #ENTRYPOINT ["java","-XX:+UseG1GC","-XX:MaxRAMPercentage=75.0","-jar","/app/app.jar"]
 FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /app
