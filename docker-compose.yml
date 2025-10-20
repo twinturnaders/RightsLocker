@@ -45,7 +45,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/rightslocker
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
-      SERVER_PORT: 8080
+      SERVER_PORT: 5432
       # S3 / Spaces
       S3_ENDPOINT: https://sfo3.digitaloceanspaces.com
       S3_REGION: sfo3
