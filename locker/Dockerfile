@@ -14,10 +14,10 @@
 #
 #EXPOSE 808
 #ENTRYPOINT ["java","-XX:+UseG1GC","-XX:MaxRAMPercentage=75.0","-jar","/app/app.jar"]
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 COPY . .
-RUN mvn -q -DskipTests package
+RUN ./mvnw -q -DskipTests package
 
 # Runtime: glibc-based + G1GC
 FROM eclipse-temurin:17-jre-jammy
