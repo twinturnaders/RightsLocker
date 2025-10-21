@@ -8,13 +8,14 @@ import org.bytedeco.opencv.opencv_core.RectVector;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 
 import static org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur;
 
-@Component
+@Service
 public class RedactionService {
 
   private final Java2DFrameConverter j2d = new Java2DFrameConverter();
