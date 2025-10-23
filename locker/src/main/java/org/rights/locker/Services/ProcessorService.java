@@ -1,6 +1,7 @@
 package org.rights.locker.Services;
 
 import lombok.RequiredArgsConstructor;
+import org.rights.locker.Config.RabbitConfig;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Repos.ProcessingJobRepo;
@@ -17,10 +18,8 @@ public class ProcessorService {
     public record JobMessage(UUID jobId, String type) {}
 
     public void publish(ProcessingJob job) {
-        amqp.convertAndSend(
-                org.rights.locker.Config.RabbitConfig.EXCHANGE,
-                org.rights.locker.Config.RabbitConfig.ROUTING,
-                new JobMessage(job.getId(), job.getType().name())
+        amqp.convertAndSend("", RabbitConfig.JOBS_QUEUE, job);
+        new JobMessage(job.getId(), job.getType().name()
         );
     }
 
