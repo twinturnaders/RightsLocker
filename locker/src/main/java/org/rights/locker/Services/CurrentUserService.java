@@ -17,9 +17,7 @@ public class CurrentUserService {
     public CurrentUserService(AppUserRepo userRepo) {
         this.userRepo = userRepo;
     }
-    public long getCurrentUserIdByEmail(String email) {
-        return userRepo.findIdByEmail(email);
-    }
+
     public Optional<AppUser> getUserByEmail(String email) {
         return userRepo.findByEmail(email);
     }
