@@ -53,7 +53,6 @@ public class Evidence {
     @Column(nullable = false, name = "original_size_b")
     private Long originalSizeB;
 
-
     @Column(nullable = false, name = "original_key")
     private String originalKey; // s3 key (originals)
 
@@ -66,7 +65,7 @@ public class Evidence {
     @Column(nullable = true, name = "redacted_key")
     private String redactedKey;
 
-
+    private Long redactedSize;
     @Column(nullable = false, name= "legal_hold")
     private boolean legalHold;
 
@@ -83,4 +82,7 @@ public class Evidence {
         if (this.status == null) this.status = EvidenceStatus.RECEIVED;
     }
     @PreUpdate void onUpdate(){ this.updatedAt = Instant.now(); }
+
+    public void setRedactedSizeB(Long outputSizeB) {
+    }
 }

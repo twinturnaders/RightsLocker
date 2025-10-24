@@ -1,4 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DatabaseMigrationSettings" lastSelectedDirectory="migration" />
+  <component name="JpaLiquibaseChangesConfig">
+    <exclude-change idName="spatial_ref_sys" tagName="dropTable" />
+    <exclude-change idName="evidence#derivative_key" tagName="modifyDataType" />
+    <exclude-change idName="evidence#description" tagName="modifyDataType" />
+    <exclude-change idName="evidence#owner_user_id" tagName="dropNotNullConstraint" />
+    <exclude-change idName="share_link#token" tagName="modifyDataType" />
+    <exclude-change idName="evidence#title" tagName="modifyDataType" />
+    <exclude-change idName="evidence#thumbnail_key" tagName="modifyDataType" />
+    <exclude-change idName="processing_job#status" tagName="dropColumn" />
+    <exclude-change idName="processing_job#type" tagName="dropColumn" />
+    <exclude-change idName="processing_job#status" tagName="addColumn" />
+    <exclude-change idName="app_user#display_name" tagName="modifyDataType" />
+    <exclude-change idName="app_user#email" tagName="modifyDataType" />
+    <exclude-change idName="custody_event#event_type" tagName="dropColumn" />
+    <exclude-change idName="webhook_event#event_type" tagName="modifyDataType" />
+    <exclude-change idName="webhook_event#external_id" tagName="modifyDataType" />
+    <exclude-change idName="user_session#jwt_id" tagName="modifyDataType" />
+    <exclude-change idName="evidence#original_key" tagName="modifyDataType" />
+    <exclude-change idName="evidence#original_sha256" tagName="modifyDataType" />
+    <exclude-change idName="app_user#password_hash" tagName="modifyDataType" />
+    <exclude-change idName="coc_report#pdf_key" tagName="modifyDataType" />
+    <exclude-change idName="webhook_event#provider" tagName="modifyDataType" />
+    <exclude-change idName="evidence#redacted_key" tagName="modifyDataType" />
+    <exclude-change idName="app_user#role" tagName="modifyDataType" />
+  </component>
 </project>

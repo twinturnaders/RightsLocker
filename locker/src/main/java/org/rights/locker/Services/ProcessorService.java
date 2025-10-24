@@ -1,33 +1,118 @@
+// File: src/main/java/org/rights/locker/Services/ProcessorService.java
 package org.rights.locker.Services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.hibernate.jdbc.Expectation;
 import org.rights.locker.Config.RabbitConfig;
+import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.JobStatus;
+import org.rights.locker.Enums.JobType;
+import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ProcessingJobRepo;
-import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.Instant;
 import java.util.UUID;
+
+import static org.bytedeco.librealsense.global.RealSense.none;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProcessorService {
-    private final AmqpTemplate amqp;
+
+    private final RabbitTemplate rabbit;        // uses default exchange ""
     private final ProcessingJobRepo jobs;
-    public record JobMessage(UUID jobId, String type) {}
+    private final EvidenceRepo evidenceRepo;
+    private final CustodyService custody;       // if you have chain-of-custody events
+    private final StorageService storage;       // in case you need to poke S3 in completion
 
+    /**
+     * Message sent to the worker queue.
+     * Keep it small & serializable (Jackson2JsonMessageConverter recommended).
+     */
+    public record JobMessage(UUID jobId, JobType type, UUID evidenceId, int attempt) implements Serializable {
+        @Serial private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * Enqueue a job to rl.jobs using the default (“”) exchange.
+     * The routing key is the queue name.
+     */
     public void publish(ProcessingJob job) {
-        amqp.convertAndSend("", RabbitConfig.JOBS_QUEUE, job);
-        new JobMessage(job.getId(), job.getType().name()
-        );
+        // bump attempts on enqueue to make it visible to the consumer
+        job.setAttempts((job.getAttempts() == none) ? 1 : job.getAttempts() + 1);
+        job.setStatus(JobStatus.QUEUED);
+        job.setQueuedAt(Instant.now()); // if your entity has it; otherwise remove
+        jobs.save(job);
+
+        var msg = new JobMessage(job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts());
+        log.info("Publishing job {} type={} ev={} attempt={}", job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts());
+        // default exchange (""), routingKey = queue name
+        rabbit.convertAndSend("", RabbitConfig.JOBS_QUEUE, msg);
     }
 
-    public void complete(java.util.UUID jobId, JobStatus status, String error, String outputsJson){
+    /**
+     * Mark job as started (consumer can call this when it begins work).
+     */
+    public ProcessingJob markStarted(UUID jobId) {
         var job = jobs.findById(jobId).orElseThrow();
-        job.setStatus(status);
-        job.setErrorMsg(error);
-        job.setPayloadJson(outputsJson);
-        jobs.save(job);
+        job.setStatus(JobStatus.RUNNING);
+        job.setStartedAt(Instant.now());
+        return jobs.save(job);
     }
+
+    /**
+     * Mark job successful, attach outputs, and update Evidence depending on job type.
+     * For THUMBNAIL: set ev.thumbnailKey
+     * For REDACT:    set ev.redactedKey, optionally ev.redactedSizeB & ev.redactedSha256
+     */
+    public void completeSuccess(UUID jobId, String outputKey, Long outputSizeB, String outputSha256) {
+        var job = jobs.findById(jobId).orElseThrow();
+        job.setStatus(JobStatus.DONE);
+        job.setFinishedAt(Instant.now());
+        job.setLastError(null);
+        jobs.save(job);
+
+        var ev = job.getEvidence();
+        switch (job.getType()) {
+            case THUMBNAIL -> {
+                ev.setThumbnailKey(outputKey);
+                // (optional) ev.setThumbnailSizeB(outputSizeB);
+                custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.THUMBNAIL_GENERATED,
+                        "{\"key\":\"" + outputKey + "\"}");
+            }
+            case REDACT -> {
+                ev.setRedactedKey(outputKey);
+                if (outputSizeB != null) ev.setRedactedSizeB(outputSizeB);
+                if (outputSha256 != null) ev.setRedactedKey(outputSha256);
+                // you may also update status if your Evidence tracks lifecycle
+                // ev.setStatus(EvidenceStatus.REDACTED);
+                custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.REDACTED,
+                        "{\"key\":\"" + outputKey + "\",\"sha256\":\"" + safe(outputSha256) + "\"}");
+            }
+            default -> log.warn("completeSuccess: unhandled job type {}", job.getType());
+        }
+        evidenceRepo.save(ev);
+        log.info("Job {} completed OK; outputKey={}", jobId, outputKey);
+    }
+
+    /**
+     * Mark job failed and keep the error for diagnostics; you can requeue elsewhere if desired.
+     */
+    public void completeFailure(UUID jobId, String error) {
+        var job = jobs.findById(jobId).orElseThrow();
+        job.setStatus(JobStatus.FAILED);
+        job.setFinishedAt(Instant.now());
+        job.setLastError(error);
+        jobs.save(job);
+        log.warn("Job {} FAILED: {}", jobId, error);
+    }
+
+    private static String safe(String s){ return s==null ? "" : s; }
 }

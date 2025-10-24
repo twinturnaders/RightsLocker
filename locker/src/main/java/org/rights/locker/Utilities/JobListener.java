@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Java2DFrameConverter;
+import org.rights.locker.Config.RabbitConfig;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.JobStatus;
@@ -37,27 +38,31 @@ public class JobListener {
     private final EvidenceRepo evidenceRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
+    private final ProcessorService processor;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    @RabbitListener(queues = "rl.jobs")
+    @RabbitListener(queues = RabbitConfig.JOBS_QUEUE)
     public void onJob(ProcessorService.JobMessage msg) {
-        var job = jobs.findById(msg.jobId()).orElse(null);
-        if (job == null) return;
+        log.info("Got job {} type={} attempt={}", msg.jobId(), msg.type(), msg.attempt());
+        var job = processor.markStarted(msg.jobId());
         try {
-            switch (job.getType()) {
-                case THUMBNAIL -> runThumbnail(job);
-                case REDACT -> runRedact(job);
-                default -> log.warn("Unknown job type {}", job.getType());
-            }
-            job.setStatus(JobStatus.SUCCEEDED);
-            jobs.save(job);
+            // TODO: do real work based on msg.type (THUMBNAIL/REDACT)
+            // simulate
+            Thread.sleep(1000);
+
+            // Example outputs
+            String outputKey = switch (msg.type()) {
+                case THUMBNAIL -> "thumbnails/%s.jpg".formatted(msg.evidenceId());
+                case REDACT    -> "redacted/%s.mp4".formatted(msg.evidenceId());
+                default        -> "out/%s.bin".formatted(msg.evidenceId());
+            };
+
+            // processor.completeSuccess(job.getId(), outputKey, size, sha)
+            processor.completeSuccess(job.getId(), outputKey, 0L, null);
         } catch (Exception ex) {
-            log.error("Job {} failed", job.getId(), ex);
-            job.setStatus(JobStatus.ERROR);
-            job.setAttempts(job.getAttempts() + 1);
-            jobs.save(job);
+            processor.completeFailure(job.getId(), ex.getMessage());
         }
     }
 

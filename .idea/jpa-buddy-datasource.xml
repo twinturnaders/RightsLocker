@@ -3,6 +3,7 @@
   <component name="JpbDataSourceConfig">
     <data-source-infos>
       <data-source-info id="a81cbb74-3e5c-48dd-94b8-cd69e2087033" persistence-unit-name="locker:locker" />
+      <data-source-info id="a81cbb74-3e5c-48dd-94b8-cd69e2087033" persistence-unit-name="locker:entityManagerFactory" />
     </data-source-infos>
   </component>
 </project>

@@ -61,9 +61,12 @@ public class EvidenceService {
             custody.record(ev, null, CustodyEventType.RECEIVED, "{}");
 
             // Enqueue processing jobs
-            var thumb = jobs.save(ProcessingJob.builder().evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
+            var thumb = jobs.save(ProcessingJob.builder()
+                    .evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
             processor.publish(thumb);
-            var redact = jobs.save(ProcessingJob.builder().evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0).build());
+
+            var redact = jobs.save(ProcessingJob.builder()
+                    .evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0).build());
             processor.publish(redact);
             return ev;
         } catch (Exception e){

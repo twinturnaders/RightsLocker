@@ -58,4 +58,20 @@ public class ProcessingJob {
         if (this.status == null) this.status = JobStatus.QUEUED;
     }
     @PreUpdate void onUpdate(){ this.updatedAt = Instant.now(); }
+
+    public void setFinishedAt(Instant now) {
+        this.updatedAt = now;
+    }
+
+    public void setLastError(String error) {
+        this.errorMsg = error;
+    }
+
+    public void setStartedAt(Instant now) {
+        this.createdAt = now;
+    }
+
+    public void setQueuedAt(Instant now) {
+        this.updatedAt = now;
+    }
 }
