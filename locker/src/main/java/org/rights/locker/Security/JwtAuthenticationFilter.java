@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Services.CurrentUserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
@@ -20,7 +21,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final JwtService jwtService;
-    private final CurrentUserService currentUserService; // or your own principal lookup
+    private final AppUser userPrincipal;
+    private final CurrentUserService currentUserService;
     private final List<String> skipPatterns = List.of(
             "/api/auth/login",
             "/api/auth/refresh",
@@ -35,6 +37,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     public JwtAuthenticationFilter(JwtService jwtService, CurrentUserService currentUserService) {
         this.jwtService = jwtService;
+        this.userPrincipal = userPrincipal;
+
         this.currentUserService = currentUserService;
     }
 
@@ -75,13 +79,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        var userDetails = currentUserService.getCurrentUserbyId(userId); // or by username/subject
-        var userRole = currentUserService.getRoleByUserId(userId);
+       UserPrincipal userPrincipal = UserPrincipal.create(currentUserService.getCurrentUser(userId));
         var authToken = new UsernamePasswordAuthenticationToken(
-                userRole,
-                userDetails,
-                null
-                );
+                userPrincipal.getAuthorities(),
+                userPrincipal.getPassword()
+        );
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
