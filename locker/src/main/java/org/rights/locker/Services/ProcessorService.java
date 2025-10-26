@@ -3,9 +3,7 @@ package org.rights.locker.Services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.jdbc.Expectation;
 import org.rights.locker.Config.RabbitConfig;
-import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
@@ -40,15 +38,12 @@ public class ProcessorService {
         @Serial private static final long serialVersionUID = 1L;
     }
 
-    /**
-     * Enqueue a job to rl.jobs using the default (“”) exchange.
-     * The routing key is the queue name.
-     */
+
     public void publish(ProcessingJob job) {
-        // bump attempts on enqueue to make it visible to the consumer
+
         job.setAttempts((job.getAttempts() == none) ? 1 : job.getAttempts() + 1);
         job.setStatus(JobStatus.QUEUED);
-        job.setQueuedAt(Instant.now()); // if your entity has it; otherwise remove
+
         jobs.save(job);
 
         var msg = new JobMessage(job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts());
@@ -74,9 +69,8 @@ public class ProcessorService {
      */
     public void completeSuccess(UUID jobId, String outputKey, Long outputSizeB, String outputSha256) {
         var job = jobs.findById(jobId).orElseThrow();
-        job.setStatus(JobStatus.DONE);
-        job.setFinishedAt(Instant.now());
-        job.setLastError(null);
+        job.setStatus(JobStatus.SUCCESS);
+        job.setUpdatedAt(Instant.now());
         jobs.save(job);
 
         var ev = job.getEvidence();
