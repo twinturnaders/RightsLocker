@@ -1,11 +1,12 @@
 
 spring:
-  flyway:
-    locations: "classpath:db/migration"
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASS}
+  flyway:
+    locations: "classpath:db/migration"
   jpa:
     hibernate:
       ddl-auto: validate
