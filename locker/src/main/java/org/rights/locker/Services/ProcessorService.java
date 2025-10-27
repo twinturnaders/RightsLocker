@@ -107,6 +107,23 @@ public class ProcessorService {
         jobs.save(job);
         log.warn("Job {} FAILED: {}", jobId, error);
     }
+    public void complete(UUID jobId, JobStatus status, String outputKey, String error) {
+        if (status == null) throw new IllegalArgumentException("status is required");
+        switch (status) {
+            case RUNNING -> {
+                // allow controller to mark as running if you expose that
+                markStarted(jobId);
+            }
+            case DONE -> {
+                // You can pass size/sha later if you compute them; nulls are fine here.
+                completeSuccess(jobId, outputKey, null, null);
+            }
+            case FAILED -> {
+                completeFailure(jobId, error != null ? error : "unknown error");
+            }
 
+            default -> throw new IllegalArgumentException("Unhandled status: " + status);
+        }
+    }
     private static String safe(String s){ return s==null ? "" : s; }
 }
