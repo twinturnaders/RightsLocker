@@ -15,7 +15,7 @@ CREATE TYPE public.custody_event_type AS ENUM (
 
 
 --
--- Name: evidence_status; Type: TYPE; Schema: public; Owner: -
+-- Name: evidence_status; Type: TYPE; Schema: public;-
 --
 
 CREATE TYPE public.evidence_status AS ENUM (
