@@ -6,7 +6,7 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASS}
   flyway:
-    locations: "classpath:db/migration"
+    locations: classpath:db/migration
   jpa:
     hibernate:
       ddl-auto: update
