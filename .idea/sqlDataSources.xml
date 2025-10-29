@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="cf818e99-8ec9-491b-a92f-016948bcd32e" name="DDL Mapping">
+      <data-sources db="a81cbb74-3e5c-48dd-94b8-cd69e2087033" />
+      <scope>
+        <node kind="database" qname="RightsLocker">
+          <node kind="schema" qname="public" />
+        </node>
+      </scope>
+    </mapping>
+  </component>
+</project>
