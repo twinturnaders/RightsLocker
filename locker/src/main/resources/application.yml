@@ -1,8 +1,10 @@
+server:
+  port: 8080
 
 spring:
 
   datasource:
-    url: ${DB_URL}
+    url: jdbc:postgresql://db:5432/rightslocker
     username: ${DB_USER}
     password: ${DB_PASS}
   flyway:
@@ -25,8 +27,6 @@ spring:
     username: ${RABBIT_USER}
     password: ${RABBIT_PASS}
 
-server:
-  port: 8080
 
 app:
   s3:
