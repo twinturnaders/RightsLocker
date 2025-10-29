@@ -1,7 +1,7 @@
 
 
-CREATE SCHEMA public;
-
+CREATE SCHEMA IF NOT EXISTS public;
+CREATE EXTENSION IF NOT EXISTS PostGIS;
 
 
 
@@ -20,7 +20,7 @@ CREATE TYPE public.custody_event_type AS ENUM (
     'DOWNLOADED',
     'SHARED',
     'LEGAL_HOLD_ON'
-);
+    );
 
 
 --
@@ -34,7 +34,7 @@ CREATE TYPE public.evidence_status AS ENUM (
     'READY',
     'ERROR',
     'REDACTED'
-);
+    );
 
 
 --
@@ -50,7 +50,7 @@ CREATE TYPE public.job_status AS ENUM (
     'ERROR',
     'FAILED',
     'DONE'
-);
+    );
 
 
 --
@@ -63,7 +63,7 @@ CREATE TYPE public.job_type AS ENUM (
     'REDACT',
     'THUMBNAIL',
     'GENERATE_COC'
-);
+    );
 
 
 --
@@ -75,7 +75,7 @@ CREATE TYPE public.role AS ENUM (
     'USER',
     'MOD',
     'ADMIN'
-);
+    );
 
 
 --
@@ -84,13 +84,13 @@ CREATE TYPE public.role AS ENUM (
 --
 
 CREATE TABLE public.app_user (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    email text NOT NULL,
-    password_hash text NOT NULL,
-    display_name text,
-    role text DEFAULT 'USER'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+                                 id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                 email text NOT NULL,
+                                 password_hash text NOT NULL,
+                                 display_name text,
+                                 role text DEFAULT 'USER'::text NOT NULL,
+                                 created_at timestamp with time zone DEFAULT now() NOT NULL,
+                                 updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -100,11 +100,11 @@ CREATE TABLE public.app_user (
 --
 
 CREATE TABLE public.coc_report (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    evidence_id uuid NOT NULL,
-    pdf_key text NOT NULL,
-    sha256 character varying(255) NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+                                   id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                   evidence_id uuid NOT NULL,
+                                   pdf_key text NOT NULL,
+                                   sha256 character varying(255) NOT NULL,
+                                   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -114,12 +114,12 @@ CREATE TABLE public.coc_report (
 --
 
 CREATE TABLE public.custody_event (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    evidence_id uuid NOT NULL,
-    actor_user_id uuid,
-    event_type public.custody_event_type NOT NULL,
-    meta_json jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+                                      id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                      evidence_id uuid NOT NULL,
+                                      actor_user_id uuid,
+                                      event_type public.custody_event_type NOT NULL,
+                                      meta_json jsonb,
+                                      created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -129,24 +129,24 @@ CREATE TABLE public.custody_event (
 --
 
 CREATE TABLE public.evidence (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    owner_user_id uuid NOT NULL,
-    title text,
-    description text,
-    captured_at timestamp with time zone,
-    capture_latlon public.geography(Point,4326),
-    capture_accuracy_m numeric,
-    original_sha256 text NOT NULL,
-    original_size_b bigint NOT NULL,
-    original_key text NOT NULL,
-    derivative_key text,
-    thumbnail_key text,
-    legal_hold boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    redacted_key text,
-    redacted_size bigint,
-    status character varying(255) NOT NULL
+                                 id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                 owner_user_id uuid NOT NULL,
+                                 title text,
+                                 description text,
+                                 captured_at timestamp with time zone,
+                                 capture_latlon public.geography(Point,4326),
+                                 capture_accuracy_m numeric,
+                                 original_sha256 text NOT NULL,
+                                 original_size_b bigint NOT NULL,
+                                 original_key text NOT NULL,
+                                 derivative_key text,
+                                 thumbnail_key text,
+                                 legal_hold boolean DEFAULT false NOT NULL,
+                                 created_at timestamp with time zone DEFAULT now() NOT NULL,
+                                 updated_at timestamp with time zone DEFAULT now() NOT NULL,
+                                 redacted_key text,
+                                 redacted_size bigint,
+                                 status character varying(255) NOT NULL
 );
 
 
@@ -156,15 +156,15 @@ CREATE TABLE public.evidence (
 --
 
 CREATE TABLE public.processing_job (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    evidence_id uuid NOT NULL,
-    type public.job_type NOT NULL,
-    status public.job_status DEFAULT 'QUEUED'::public.job_status NOT NULL,
-    attempts integer DEFAULT 0 NOT NULL,
-    error_msg text,
-    payload_json jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+                                       id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                       evidence_id uuid NOT NULL,
+                                       type public.job_type NOT NULL,
+                                       status public.job_status DEFAULT 'QUEUED'::public.job_status NOT NULL,
+                                       attempts integer DEFAULT 0 NOT NULL,
+                                       error_msg text,
+                                       payload_json jsonb,
+                                       created_at timestamp with time zone DEFAULT now() NOT NULL,
+                                       updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -174,13 +174,13 @@ CREATE TABLE public.processing_job (
 --
 
 CREATE TABLE public.share_link (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    evidence_id uuid NOT NULL,
-    created_by uuid NOT NULL,
-    token text NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    allow_original boolean DEFAULT false NOT NULL,
-    revoked_at timestamp with time zone
+                                   id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                   evidence_id uuid NOT NULL,
+                                   created_by uuid NOT NULL,
+                                   token text NOT NULL,
+                                   expires_at timestamp with time zone NOT NULL,
+                                   allow_original boolean DEFAULT false NOT NULL,
+                                   revoked_at timestamp with time zone
 );
 
 
@@ -190,11 +190,11 @@ CREATE TABLE public.share_link (
 --
 
 CREATE TABLE public.user_session (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    jwt_id text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    expires_at timestamp with time zone NOT NULL
+                                     id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                     user_id uuid NOT NULL,
+                                     jwt_id text NOT NULL,
+                                     created_at timestamp with time zone DEFAULT now() NOT NULL,
+                                     expires_at timestamp with time zone NOT NULL
 );
 
 
@@ -204,13 +204,13 @@ CREATE TABLE public.user_session (
 --
 
 CREATE TABLE public.webhook_event (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    provider text NOT NULL,
-    event_type text NOT NULL,
-    external_id text NOT NULL,
-    payload_json jsonb NOT NULL,
-    processed boolean DEFAULT false NOT NULL,
-    processed_at timestamp with time zone
+                                      id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                      provider text NOT NULL,
+                                      event_type text NOT NULL,
+                                      external_id text NOT NULL,
+                                      payload_json jsonb NOT NULL,
+                                      processed boolean DEFAULT false NOT NULL,
+                                      processed_at timestamp with time zone
 );
 
 
