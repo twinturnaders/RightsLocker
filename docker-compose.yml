@@ -26,10 +26,7 @@ services:
     networks: [ app-net ]
 
 
-  flyway:
-    image: flyway/flyway:10
-    depends_on:
-      db: { condition: service_healthy }
+
 
 
   backend:
@@ -45,6 +42,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/rightslocker
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      SPRING_FLYWAY_ENABLED: "true"
       SERVER_PORT: 5432
       # S3 / Spaces
       S3_ENDPOINT: https://sfo3.digitaloceanspaces.com
