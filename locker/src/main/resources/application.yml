@@ -1,23 +1,14 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT}
 
 spring:
-
   datasource:
-    url: jdbc:postgresql://db:5432/rightslocker
+    url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASS}
-  flyway:
-    locations: classpath:db/migration
   jpa:
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        jdbc.lob.non_contextual_creation: true
-
   jackson:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
