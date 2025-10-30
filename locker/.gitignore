@@ -3,7 +3,8 @@ target/
 
 !**/src/main/**/target/
 !**/src/test/**/target/
-
+*/*/locker/.env/
+/.env/
 ### STS ###
 .apt_generated
 .classpath
