@@ -22,7 +22,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
     ports:
-      - "15672:15672"     # UI
+      - "30082:15672"     # UI
     networks: [ app-net ]
 
 
@@ -43,7 +43,6 @@ services:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       SPRING_FLYWAY_ENABLED: "true"
-      SERVER_PORT: 5432
       # S3 / Spaces
       S3_ENDPOINT: https://sfo3.digitaloceanspaces.com
       S3_REGION: sfo3
@@ -63,7 +62,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
         - JAVA_TOOL_OPTIONS=-XX:+UseG1GC -Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m
     ports:
-      - "8080:8080"
+      - "30081:8080"
 
     healthcheck:
       test: [ "CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health" ]
@@ -85,7 +84,7 @@ services:
     depends_on:
       backend: { condition: service_started }
     ports:
-      - "80:80"              # serve at http://your-host/
+      - "30080:80"              # serve at http://your-host/
     networks: [ app-net ]
 
 volumes:

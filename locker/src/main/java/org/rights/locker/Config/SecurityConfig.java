@@ -6,6 +6,7 @@ import org.rights.locker.Security.JwtService;
 import org.rights.locker.Services.CurrentUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -16,7 +17,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
@@ -36,8 +39,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // stateless API with Authorization header
                 .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(reg -> reg
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/evidence/*").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/evidence/presign-upload",
+                                "/api/evidence/finalize").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/evidence/**/download").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -54,15 +61,20 @@ public class SecurityConfig {
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception { return cfg.getAuthenticationManager(); }
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        var cfg = new org.springframework.web.cors.CorsConfiguration();
-        cfg.addAllowedOriginPattern("*");
-        cfg.setAllowedOrigins(List.of("https://rightslocker.org", "http://localhost:4200", "https://127.0.0.1:8080", "https://www.rightslocker.org"));
-        cfg.setAllowedMethods(java.util.List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(java.util.List.of("*"));
-        cfg.setAllowCredentials(true);
-        var src = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
-        src.registerCorsConfiguration("/**", cfg);
-        return src;
+
+        CorsConfigurationSource corsConfigurationSource() {
+            var cfg = new CorsConfiguration();
+            cfg.setAllowedOrigins(List.of(
+                    "https://rightslocker.org",
+                    "https://www.rightslocker.org",
+                    "http://localhost:4200"
+            ));
+            cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+            cfg.setAllowedHeaders(List.of("*"));
+            cfg.setAllowCredentials(true);
+            var src = new UrlBasedCorsConfigurationSource();
+            src.registerCorsConfiguration("/**", cfg);
+            return src;
+        }
     }
-}
+
