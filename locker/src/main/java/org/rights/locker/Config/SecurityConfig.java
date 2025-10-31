@@ -18,6 +18,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.util.List;
+
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 
@@ -54,7 +56,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         var cfg = new org.springframework.web.cors.CorsConfiguration();
-        cfg.addAllowedOriginPattern("*"); // or your exact origin in prod
+        cfg.addAllowedOriginPattern("*");
+        cfg.setAllowedOrigins(List.of("https://rightslocker.org", "http://localhost:4200", "https://127.0.0.1:8080", "https://www.rightslocker.org"));
         cfg.setAllowedMethods(java.util.List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(java.util.List.of("*"));
         cfg.setAllowCredentials(true);
