@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DdlMappings">
     <mapping uuid="cf818e99-8ec9-491b-a92f-016948bcd32e" name="DDL Mapping">
-      <data-sources db="a81cbb74-3e5c-48dd-94b8-cd69e2087033" />
+      <data-sources db="a81cbb74-3e5c-48dd-94b8-cd69e2087033" ddl="6a77b862-e6bb-47d8-8d03-6c426a9adf3f" />
       <scope>
         <node kind="database" qname="RightsLocker">
           <node kind="schema" qname="public" />

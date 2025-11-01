@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/evidence/**", "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/evidence/presign-upload",
                                 "/api/evidence/finalize").permitAll()

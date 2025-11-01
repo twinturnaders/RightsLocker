@@ -10,25 +10,70 @@ import { NgIf } from '@angular/common';
 })
 export class EvidenceUploadComponent {
   api = inject(EvidenceApi);
-  progress = 0; msg = '';
+  progress = 0;
+  msg = '';
 
-  async onFile(e: Event){
+  async onFile(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
-    // Option A: Direct multipart to backend (simple path)
-    this.api.uploadMultipart(file, { title: file.name }).subscribe({
-      next: () => this.msg = 'Uploaded! Processing…',
-      error: (err) => this.msg = 'Upload failed: ' + (err?.error?.message || err.statusText)
-    });
+    this.progress = 0;
+    this.msg = 'Requesting upload URL...';
 
-    // Option B (commented): Presigned PUT straight to S3/Spaces
-    // const key = `${crypto.randomUUID()}/original-${file.name}`;
-    // this.api.presignUpload(key, file.type || 'application/octet-stream').subscribe(async res => {
-    //   const put = await fetch(res.url, { method: 'PUT', headers: res.headers, body: file });
-    //   if (!put.ok) { this.msg = 'Upload failed'; return; }
-    //   // TODO: call finalize endpoint to create Evidence row from S3 object
-    //   this.msg = 'Uploaded via presign!';
-    // });
+    this.api.presignUpload(file.name, file.type || 'application/octet-stream')
+      .subscribe({
+        next: async (res) => {
+          try {
+            // Build signed headers from backend (may be string or string[])
+            const hdrs = new Headers();
+            Object.entries(res.headers || {}).forEach(([k, v]) => {
+              if (Array.isArray(v)) hdrs.set(k, v.join(','));
+              else if (v != null) hdrs.set(k, String(v));
+            });
+            // Ensure content-type matches what was signed
+            if (!hdrs.has('Content-Type')) {
+              hdrs.set('Content-Type', file.type || 'application/octet-stream');
+            }
+
+            // Use XHR for progress (fetch has no upload progress)
+            this.msg = 'Uploading...';
+            await this.putWithProgress(res.url, hdrs, file, p => this.progress = p);
+
+            this.msg = 'Finalizing...';
+            this.api.finalize({
+              key: res.key,
+              title: file.name,
+              description: '',
+              capturedAtIso: new Date().toISOString(),
+            }).subscribe({
+              next: () => { this.msg = 'Uploaded! Processing…'; this.progress = 100; },
+              error: (err) => { this.msg = 'Finalize failed: ' + (err?.error?.message || err.statusText); }
+            });
+
+          } catch (err: any) {
+            this.msg = 'Upload failed: ' + (err?.message || 'unknown error');
+          }
+        },
+        error: (err) => {
+          this.msg = 'Presign failed: ' + (err?.error?.message || err.statusText || 'unknown error');
+        }
+      });
+  }
+
+  private putWithProgress(url: string, headers: Headers, file: File, onProgress: (p: number) => void) {
+    return new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', url, true);
+      headers.forEach((v, k) => xhr.setRequestHeader(k, v));
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) onProgress(Math.round((evt.loaded / evt.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { onProgress(100); resolve(); }
+        else reject(new Error(`PUT failed: ${xhr.status} ${xhr.statusText}`));
+      };
+      xhr.onerror = () => reject(new Error('Network error during PUT'));
+      xhr.send(file);
+    });
   }
 }
