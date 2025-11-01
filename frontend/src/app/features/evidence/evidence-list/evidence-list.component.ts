@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import {Component, inject, numberAttribute} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -18,6 +18,7 @@ export class EvidenceListComponent {
   loading = false;
   error = '';
 
+
   ngOnInit() { this.load(0, 20); }
 
   load(page: number, size: number) {
@@ -36,4 +37,6 @@ export class EvidenceListComponent {
     if (!this.page) return;
     if (this.page.number > 0) this.load(this.page.number - 1, this.page.size);
   }
+
+  protected readonly numberAttribute = numberAttribute;
 }

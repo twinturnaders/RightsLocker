@@ -1,5 +1,5 @@
 <h2>Evidence</h2>
-<div class="grid" *ngIf="items as page">
+<div class="grid" *ngIf="page as page">
   <div class="card" *ngFor="let e of page.content">
     <div class="row">
       <div class="title">{{e.title || 'Untitled'}}</div>
