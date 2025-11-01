@@ -68,7 +68,10 @@ public class SecurityConfig {
             cfg.setAllowedOrigins(List.of(
                     "https://rightslocker.org",
                     "https://www.rightslocker.org",
-                    "http://localhost:4200"
+                    "http://localhost:4200",
+                    "http://127.0.0.1:8080",
+                    "http://127.0.0.1:30080",
+                    "http://127.0.0.1:30082"
             ));
             cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
             cfg.setAllowedHeaders(List.of("*"));
