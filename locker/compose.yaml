@@ -7,4 +7,4 @@ services:
       - 'POSTGRES_USER=${DB_USER}'
 
     ports:
-      - '5432'
+      - '8080'
