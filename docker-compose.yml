@@ -56,7 +56,7 @@ services:
       RABBIT_PORT: 5672
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
-      # JWT
+
       JWT_SECRET: ${JWT_SECRET}
       # Spring profile
       SPRING_PROFILES_ACTIVE: prod
