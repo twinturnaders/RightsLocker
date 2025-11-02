@@ -20,7 +20,7 @@ public class ShareLink {
     private Evidence evidence;
 
 
-    @ManyToOne(optional = false) @JoinColumn(name = "created_by")
+    @ManyToOne(optional = true) @JoinColumn(name = "created_by")
     private AppUser createdBy;
 
 

@@ -44,6 +44,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/evidence/presign-upload",
                                 "/api/evidence/finalize").permitAll()
+                        .requestMatchers(
+                                "/api/evidence/presign-upload",
+                                "/api/evidence/finalize",
+                                "/api/evidence/*/download",
+                                "/api/evidence/thumb",
+                                "/evidence/presign-upload",
+                                "/evidence/finalize",
+                                "/evidence/*/download",
+                                "/evidence/thumb"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/evidence/**/download").permitAll()
                         .anyRequest().authenticated()
