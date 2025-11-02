@@ -4,23 +4,28 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.Null;
+import org.rights.locker.Entities.AppUser;
+import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Services.CurrentUserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final JwtService jwtService;
-    private final CurrentUserService currentUserService;
+
+    private final AppUserRepo userRepo;
+
 
     private final List<String> skipPatterns = List.of(
             "/api/auth/login",
@@ -34,11 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
 
-    public JwtAuthenticationFilter(JwtService jwtService, CurrentUserService currentUserService) {
+    public JwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
         this.jwtService = jwtService;
 
-        this.currentUserService = currentUserService;
+        this.userRepo = userRepo;
+
     }
+
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -79,12 +86,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
 
-        UserPrincipal userPrincipal = UserPrincipal.create(currentUserService.getCurrentUser(userId));
-        var authToken = new UsernamePasswordAuthenticationToken(
-                userPrincipal.getAuthorities(),
-                userPrincipal.getPassword()
+        AppUser appUser = userRepo.findById(UUID.fromString(userId)).orElse(null);
+        var principal = new UserPrincipal(
+                appUser.getId(),
+                appUser.getEmail(),
+                appUser.getPasswordHash(),
+                appUser.getRole()
         );
-        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        var authToken = new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                principal.getAuthorities()
+        );
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);

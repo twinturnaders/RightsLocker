@@ -1,6 +1,7 @@
 package org.rights.locker.Config;
 
 import lombok.RequiredArgsConstructor;
+import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Security.JwtAuthenticationFilter;
 import org.rights.locker.Security.JwtService;
 import org.rights.locker.Services.CurrentUserService;
@@ -64,8 +65,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtAuthenticationFilter jwtAuthFilter(JwtService jwtService, CurrentUserService currentUserService) {
-        return new JwtAuthenticationFilter(jwtService, currentUserService);
+    JwtAuthenticationFilter jwtAuthFilter(JwtService jwtService, AppUserRepo appUserRepo) {
+        return new JwtAuthenticationFilter(jwtService, appUserRepo);
     }
     @Bean
     PasswordEncoder passwordEncoder(){ return new BCryptPasswordEncoder(); }

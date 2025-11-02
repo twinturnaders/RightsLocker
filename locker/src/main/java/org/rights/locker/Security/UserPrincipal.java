@@ -3,6 +3,7 @@ package org.rights.locker.Security;
 import lombok.Getter;
 import lombok.Setter;
 import org.rights.locker.Entities.AppUser;
+import org.rights.locker.Enums.Role;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -19,15 +20,17 @@ public class UserPrincipal implements UserDetails {
     private final UUID id;
     private final String email;
     private final String password;
-    private final Collection<? extends GrantedAuthority> authorities;
+    private final Role role;
 
     public UserPrincipal(UUID id, String email, String password,
-                         Collection<? extends GrantedAuthority> authorities) {
+                          Role role) {
         this.id = id;
         this.email = email;
         this.password = password;
-        this.authorities = authorities;
+        this.role = role;
     }
+
+
 
     public static UserPrincipal create(AppUser user) {
         // Role enum already set on user; mapper ensures ROLE_ prefix
@@ -35,11 +38,17 @@ public class UserPrincipal implements UserDetails {
                 user.getId(),
                 user.getEmail(),
                 user.getPasswordHash(),
-                List.of(() -> "ROLE_" + user.getRole().name())
+                user.getRole()
         );
     }
 
     @Override public String getUsername() { return email; }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
     @Override public String getPassword() { return password; }
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
