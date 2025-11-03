@@ -8,15 +8,21 @@ import org.rights.locker.Enums.CustodyEventType;
 import org.rights.locker.Repos.CustodyEventRepo;
 import org.springframework.stereotype.Service;
 
-
-    @Service
-    @RequiredArgsConstructor
-    public class CustodyService {
-        private final CustodyEventRepo repo;
+import java.util.Map;
 
 
-        public void record(Evidence ev, AppUser actor, CustodyEventType type, String metaJson){
-            var e = CustodyEvent.builder().evidence(ev).actor(actor).eventType(type).metaJson(metaJson).build();
-            repo.save(e);
-        }
+@Service
+@RequiredArgsConstructor
+public class CustodyService {
+    private final CustodyEventRepo repo;
+
+    public void record(Evidence ev, AppUser actor, CustodyEventType type, Map<String, Object> metaJson) {
+        var e = CustodyEvent.builder()
+                .evidence(ev)
+                .actor(actor)                   // can be null for anonymous
+                .eventType(type)
+                .metaJson(metaJson)
+                .build();
+        repo.save(e);
     }
+}

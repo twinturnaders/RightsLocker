@@ -1,5 +1,7 @@
 package org.rights.locker.Services;
 
+import lombok.Getter;
+
 import java.io.InputStream;
 import java.util.Map;
 
@@ -10,4 +12,6 @@ public interface StorageService {
     String signedGet(String bucketKey, int seconds);
 
     Map<String, Object> signedPut(String key, String bucket, int seconds, String contentType);
+
+
 }

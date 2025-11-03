@@ -11,6 +11,7 @@ import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Services.CustodyService;
 import org.rights.locker.Services.ProcessorService;
+import org.rights.locker.Services.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,7 @@ public class EvidenceController {
     private final ProcessingJobRepo jobRepo;
     private final ProcessorService processor;
     private final CustodyService custody;
+    private final StorageService storage;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -68,28 +70,30 @@ public class EvidenceController {
      *  Presign upload (PUT to Originals)
      * ----------------------------- */
     public record PresignUploadReq(String filename, String contentType) {}
+
+
+
     @PostMapping("/presign-upload")
-    public Map<String,Object> presignUpload(@RequestBody PresignUploadReq req) {
-        String safeName = (req.filename() == null ? "file.bin" : req.filename()).replaceAll("[^a-zA-Z0-9._-]", "_");
-        String key = UUID.randomUUID() + "/original-" + safeName;
+    public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
+        String safeName = (req.filename() == null ? "file.bin" : req.filename())
+                .replaceAll("[^a-zA-Z0-9._-]", "_");
+        String key = java.util.UUID.randomUUID() + "/original-" + safeName;
 
-        PutObjectRequest put = PutObjectRequest.builder()
-                .bucket(bucketOriginals)
-                .key(key)
-                .contentType(req.contentType() == null ? "application/octet-stream" : req.contentType())
-                .build();
-
-        PresignedPutObjectRequest presigned = presigner.presignPutObject(b -> b
-                .signatureDuration(java.time.Duration.ofMinutes(15))
-                .putObjectRequest(put));
-
-        // Some browsers require Content-Type to match what we signed
-        return Map.of(
-                "key", key,
-                "url", presigned.url().toString(),
-                "headers", presigned.signedHeaders()
+        // delegate to S3StorageService
+        Map<String, Object> signed = storage.signedPut(
+                key,
+                bucketOriginals,
+                15 * 60,                                  // 15 minutes
+                (req.contentType() == null ? "application/octet-stream" : req.contentType())
         );
+
+        // include the key so the client can later call /finalize with it
+        return new java.util.HashMap<>() {{
+            putAll(signed);
+            put("key", key);
+        }};
     }
+
 
     /* -----------------------------
      *  Finalize upload (compute hash + size, create row, enqueue)
@@ -145,7 +149,7 @@ public class EvidenceController {
         // if (req.lat() != null && req.lon() != null) { ... }
 
         ev = evidenceRepo.save(ev);
-        custody.record(ev, null, CustodyEventType.RECEIVED, "{\"source\":\"presigned\"}");
+        custody.record(ev, null, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
         // Enqueue processing jobs (thumbnail + redact)
         var thumb = jobRepo.save(ProcessingJob.builder()
@@ -218,7 +222,7 @@ public class EvidenceController {
         var ev = evidenceRepo.findById(id).orElseThrow();
         ev.setLegalHold(body.legalHold());
         ev = evidenceRepo.save(ev);
-        custody.record(ev, null, body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF, "{}");
+        custody.record(ev, null, body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,  Map.of("source", "presigned"));
         return ev;
     }
 }

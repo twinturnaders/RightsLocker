@@ -2,6 +2,7 @@ package org.rights.locker.Services;
 
 
 import lombok.RequiredArgsConstructor;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ShareLink;
 import org.rights.locker.Repos.EvidenceRepo;
@@ -23,7 +24,7 @@ public class ShareService {
         Evidence ev = evidenceRepo.findById(evidenceId).orElseThrow();
         var link = ShareLink.builder()
                 .evidence(ev)
-                .createdBy(null) // TODO set from auth user
+                .createdBy(AppUser.builder().build()) //
                 .token(UUID.randomUUID().toString().replace("-", ""))
                 .expiresAt(expiresAt)
                 .allowOriginal(allowOriginal)

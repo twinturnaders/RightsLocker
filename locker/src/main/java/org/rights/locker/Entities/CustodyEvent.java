@@ -4,9 +4,12 @@ package org.rights.locker.Entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.rights.locker.Enums.CustodyEventType;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -31,9 +34,9 @@ public class CustodyEvent {
     @Column(name = "event_type", nullable = false)
     private CustodyEventType eventType;
 
-
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", name = "meta_Json")
-    private String metaJson;
+    private Map<String, Object> metaJson;;
 
 
     @Column(nullable = false, name = "created_at")

@@ -15,11 +15,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class EvidenceService {
     private final StorageService storage;
     private final CustodyService custody;
     private final GeometryFactory gf = new GeometryFactory();
+    private final S3Presigner s3Presigner;
 
     public Evidence upload(MultipartFile file, String title, String description, java.time.Instant capturedAt, Double lat, Double lon, Double accuracy){
         try (InputStream in = file.getInputStream()){
@@ -58,7 +61,7 @@ public class EvidenceService {
                     .legalHold(false)
                     .build();
             ev = repo.save(ev);
-            custody.record(ev, null, CustodyEventType.RECEIVED, "{}");
+            custody.record(ev, null, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
             // Enqueue processing jobs
             var thumb = jobs.save(ProcessingJob.builder()
