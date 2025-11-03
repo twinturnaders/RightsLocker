@@ -4,10 +4,13 @@ package org.rights.locker.Entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -41,9 +44,9 @@ public class ProcessingJob {
     @Column(columnDefinition = "text", name = "error_msg")
     private String errorMsg;
 
-
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", name = "payload_json")
-    private String payloadJson;
+    private Map<String, Object> payloadJson;
 
 
     @Column(nullable = false, name = "created_at")
