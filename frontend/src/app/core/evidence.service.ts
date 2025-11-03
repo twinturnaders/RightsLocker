@@ -48,7 +48,7 @@ export class EvidenceApi {
     return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
   }
 
-  // presign + finalize (matches your controller)
+  // presign + finalize (matches your
   presignUpload(filename: string, contentType: string) {
     return this.http.post<{ key: string; url: string; headers: Record<string, string | string[]> }>(
       `${this.base}/presign-upload`,
