@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.bytedeco.librealsense.global.RealSense.none;
@@ -79,7 +80,7 @@ public class ProcessorService {
                 ev.setThumbnailKey(outputKey);
                 // (optional) ev.setThumbnailSizeB(outputSizeB);
                 custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.THUMBNAIL_GENERATED,
-                        "{\"key\":\"" + outputKey + "\"}");
+                        Map.of("key", outputKey));
             }
             case REDACT -> {
                 ev.setRedactedKey(outputKey);
@@ -88,7 +89,7 @@ public class ProcessorService {
                 // you may also update status if your Evidence tracks lifecycle
                 // ev.setStatus(EvidenceStatus.REDACTED);
                 custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.REDACTED,
-                        "{\"key\":\"" + outputKey + "\",\"sha256\":\"" + safe(outputSha256) + "\"}");
+                        Map.of("key", outputKey, "sha256", safe(outputSha256)));
             }
             default -> log.warn("completeSuccess: unhandled job type {}", job.getType());
         }
