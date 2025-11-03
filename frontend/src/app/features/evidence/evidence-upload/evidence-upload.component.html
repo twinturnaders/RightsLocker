@@ -1,6 +1,10 @@
 <div class="card form">
   <h2>Upload Evidence</h2>
   <input type="file" (change)="onFile($event)">
+  <div class="row" style="margin-top:10px;align-items:center">
+    <label class="label" style="margin:0">Check Box to auto-blur faces</label>
+    <input type="checkbox" [(ngModel)]="blur"/>
+  </div>
   <div *ngIf="progress>0" class="help">Uploading: {{progress}}%</div>
   <p *ngIf="msg" class="help">{{msg}}</p>
 </div>

@@ -2,16 +2,18 @@ import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { NgIf } from '@angular/common';
 import { Router } from '@angular/router';
 import { Evidence, EvidenceApi } from '../../../core/evidence.service';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-upload',
-  imports: [NgIf],
+  imports: [NgIf, ReactiveFormsModule, FormsModule],
   templateUrl: 'evidence-upload.component.html',
 })
 export class EvidenceUploadComponent {
   private api = inject(EvidenceApi);
   private router = inject(Router);
+  blur:boolean = false;
 
   @Output() uploaded = new EventEmitter<Evidence>();
 
@@ -20,6 +22,7 @@ export class EvidenceUploadComponent {
 
   async onFile(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];
+
     if (!file) return;
 
     this.progress = 0;
@@ -54,7 +57,7 @@ export class EvidenceUploadComponent {
                 this.progress = 100;
                 this.uploaded.emit(ev);           // tell parent to refresh/select
                 // Optional: also deep-link
-                // this.router.navigate(['/evidence', ev.id]);
+                 this.router.navigate(['/evidence', ev.id]);
               },
               error: (err) => {
                 this.msg = 'Finalize failed: ' + (err?.error?.message || err.statusText || 'unknown');
@@ -87,4 +90,6 @@ export class EvidenceUploadComponent {
       xhr.send(file);
     });
   }
+
+
 }

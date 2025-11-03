@@ -3,7 +3,7 @@ import {EvidencePageComponent} from './features/evidence/evidence-page/evidence-
 
 
 export const routes: Routes = [
-  { path:'', pathMatch:'full', redirectTo:'convert' },
+  { path:'', pathMatch:'full', redirectTo:'evidence' },
   { path:'convert', loadComponent:()=>import('./features/public/convert/convert.component').then(m=>m.ConvertComponent) },
   { path:'about', loadComponent:()=>import('./features/about/about.component').then(m=>m.AboutComponent) },
 // keep your existing protected routes below (evidence, upload, detail)

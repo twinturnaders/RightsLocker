@@ -10,11 +10,13 @@ import {NgIf} from '@angular/common';
     NgIf
   ],
   templateUrl: './convert.component.html',
-  styleUrl: './convert.component.css'
+  styleUrl: './convert.component.css',
+  standalone: true
 })
+
 export class ConvertComponent{
   http=inject(HttpClient);
-  file?:File; blur=true; uploading=false; progress=0; ok=false; msg=''; readyUrl='';
+  file?:File; blur=false; uploading=false; progress=0; ok=false; msg=''; readyUrl='';
   key=''; title='';
 
 
