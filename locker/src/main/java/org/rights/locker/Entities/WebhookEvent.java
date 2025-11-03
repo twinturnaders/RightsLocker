@@ -2,7 +2,11 @@ package org.rights.locker.Entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -26,9 +30,9 @@ public class WebhookEvent {
     @Column(nullable = false, name = "external_id")
     private String externalId;
 
-
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false, name = "payload_json")
-    private String payloadJson;
+    private Map<String, Object> payloadJson;
 
 
     @Column(nullable = false, name = "processed")
