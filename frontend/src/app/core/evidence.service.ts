@@ -36,7 +36,8 @@ export class EvidenceApi {
     return this.http.get<Page<Evidence>>(this.base, { params });
   }
 
-  get(id: string) { return this.http.get<Evidence>(`${this.base}/${id}`); }
+  get(id: string) { if(id == null){return null}
+    else{return this.http.get<Evidence>(`${this.base}/${id}`);} }
 
   setLegalHold(id: string, legalHold: boolean) {
     return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });

@@ -1,7 +1,8 @@
-import {Component, inject} from '@angular/core';
+import {Component, EventEmitter, inject, Output} from '@angular/core';
 import {HttpClient, HttpEventType} from '@angular/common/http';
 import {FormsModule} from '@angular/forms';
 import {NgIf} from '@angular/common';
+import {Evidence} from '../../../core/evidence.service';
 
 @Component({
   selector: 'app-convert',
@@ -18,7 +19,7 @@ export class ConvertComponent{
   http=inject(HttpClient);
   file?:File; blur=false; uploading=false; progress=0; ok=false; msg=''; readyUrl='';
   key=''; title='';
-
+  @Output() uploaded = new EventEmitter<Evidence>();
 
   pick(e:Event){ const f=(e.target as HTMLInputElement).files?.[0]; if(!f) return; this.file=f; this.title=f.name; this.msg=''; this.progress=0; }
 

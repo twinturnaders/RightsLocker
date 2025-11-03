@@ -4,11 +4,12 @@ import { Evidence, EvidenceApi } from '../../../core/evidence.service';
 import { EvidenceUploadComponent } from '../evidence-upload/evidence-upload.component';
 import { EvidenceListComponent } from '../evidence-list/evidence-list.component';
 import { EvidenceDetailComponent} from '../evidence-detail/evidence-detail.component';
+import {ConvertComponent} from '../../public/convert/convert.component';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-page',
-  imports: [NgIf, EvidenceUploadComponent, EvidenceListComponent, EvidenceDetailComponent],
+  imports: [NgIf, EvidenceUploadComponent, EvidenceListComponent, EvidenceDetailComponent, ConvertComponent],
   templateUrl: 'evidence-page.component.html',
   styleUrls: ['evidence-page.component.css']
 })
