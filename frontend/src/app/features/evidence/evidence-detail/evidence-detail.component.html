@@ -1,10 +1,26 @@
+<div *ngIf="loading">Loading…</div>
+<div *ngIf="error" class="help">{{error}}</div>
+
 <ng-container *ngIf="e as ev">
-  <h2>{{ev.title || 'Untitled'}}</h2>
-  <p>{{ev.description}}</p>
-  <p>Captured: {{ev.capturedAt | date:'long'}}</p>
-  <p>Status: <b>{{ev.status}}</b></p>
-  <label><input type="checkbox" [checked]="ev.legalHold" (change)="toggleHold($event)"> Legal Hold</label>
-  <div style="margin-top:12px">
-    <button (click)="download()">Download</button>
+  <div class="card">
+    <h2>{{ev.title || 'Untitled'}}</h2>
+    <p>{{ev.description}}</p>
+
+    <div class="kv">
+      <div>Status</div><div><b>{{ev.status}}</b></div>
+      <div>Captured</div><div>{{ev.capturedAt | date:'long'}}</div>
+      <div>Legal Hold</div>
+      <div><label><input type="checkbox" [checked]="ev.legalHold" (change)="toggleHold($event)"> Enabled</label></div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn" (click)="download('original')">Download Original</button>
+      <button class="btn" (click)="download('redacted')">Download Redacted</button>
+      <button class="btn" (click)="download('thumbnail')">Download Thumbnail</button>
+    </div>
+
+    <div style="margin-top:12px" *ngIf="thumbUrl() as th">
+      <img [src]="th" alt="thumbnail" style="max-width:260px;border-radius:12px;border:1px solid #ddd">
+    </div>
   </div>
 </ng-container>

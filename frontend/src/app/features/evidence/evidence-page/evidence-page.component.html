@@ -1,0 +1,12 @@
+<div class="grid grid-2">
+  <div class="col">
+    <rl-evidence-upload (uploaded)="onUploaded($event)"></rl-evidence-upload>
+    <div style="height:12px"></div>
+    <rl-evidence-list (selected)="onPicked($event)"></rl-evidence-list>
+  </div>
+
+  <div class="col">
+    <rl-evidence-detail *ngIf="selectedId" [id]="selectedId"></rl-evidence-detail>
+    <div *ngIf="!selectedId" class="card help">Select an evidence item to view details.</div>
+  </div>
+</div>

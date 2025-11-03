@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
-import { EvidenceApi} from '../../../core/evidence.service';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { NgIf } from '@angular/common';
+import { Router } from '@angular/router';
+import { Evidence, EvidenceApi } from '../../../core/evidence.service';
 
 @Component({
   standalone: true,
@@ -9,7 +10,11 @@ import { NgIf } from '@angular/common';
   templateUrl: 'evidence-upload.component.html',
 })
 export class EvidenceUploadComponent {
-  api = inject(EvidenceApi);
+  private api = inject(EvidenceApi);
+  private router = inject(Router);
+
+  @Output() uploaded = new EventEmitter<Evidence>();
+
   progress = 0;
   msg = '';
 
@@ -18,7 +23,7 @@ export class EvidenceUploadComponent {
     if (!file) return;
 
     this.progress = 0;
-    this.msg = 'Requesting upload URL...';
+    this.msg = 'Requesting upload URL…';
 
     this.api.presignUpload(file.name, file.type || 'application/octet-stream')
       .subscribe({
@@ -30,24 +35,30 @@ export class EvidenceUploadComponent {
               if (Array.isArray(v)) hdrs.set(k, v.join(','));
               else if (v != null) hdrs.set(k, String(v));
             });
-            // Ensure content-type matches what was signed
             if (!hdrs.has('Content-Type')) {
               hdrs.set('Content-Type', file.type || 'application/octet-stream');
             }
 
-            // Use XHR for progress (fetch has no upload progress)
-            this.msg = 'Uploading...';
+            this.msg = 'Uploading…';
             await this.putWithProgress(res.url, hdrs, file, p => this.progress = p);
 
-            this.msg = 'Finalizing...';
+            this.msg = 'Finalizing…';
             this.api.finalize({
               key: res.key,
               title: file.name,
               description: '',
               capturedAtIso: new Date().toISOString(),
             }).subscribe({
-              next: () => { this.msg = 'Uploaded! Processing…'; this.progress = 100; },
-              error: (err) => { this.msg = 'Finalize failed: ' + (err?.error?.message || err.statusText); }
+              next: (ev: Evidence) => {
+                this.msg = 'Uploaded! Processing…';
+                this.progress = 100;
+                this.uploaded.emit(ev);           // tell parent to refresh/select
+                // Optional: also deep-link
+                // this.router.navigate(['/evidence', ev.id]);
+              },
+              error: (err) => {
+                this.msg = 'Finalize failed: ' + (err?.error?.message || err.statusText || 'unknown');
+              }
             });
 
           } catch (err: any) {

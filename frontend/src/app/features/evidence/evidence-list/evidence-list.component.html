@@ -1,11 +1,20 @@
 <h2>Evidence</h2>
+
+<div *ngIf="loading">Loading…</div>
+<div *ngIf="error" class="help">{{error}}</div>
+
 <div class="grid" *ngIf="page as page">
-  <div class="card" *ngFor="let e of page.content">
+  <div class="card" *ngFor="let e of page.content" (click)="pick(e)" style="cursor:pointer">
     <div class="row">
       <div class="title">{{e.title || 'Untitled'}}</div>
-      <span class="status">{{e.status}}</span>
+      <span class="badge">{{e.status}}</span>
     </div>
     <div class="meta">Captured: {{e.capturedAt | date:'short'}} • Legal hold: {{e.legalHold}}</div>
-    <a [routerLink]="['/evidence', e.id]">Open</a>
   </div>
+</div>
+
+<div class="row" style="margin-top:8px">
+  <button class="btn" (click)="prev()">Prev</button>
+  <div class="spacer"></div>
+  <button class="btn" (click)="next()">Next</button>
 </div>
