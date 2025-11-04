@@ -24,13 +24,13 @@ import java.util.UUID;
         private final ShareLinkRepo repo;
         private static final SecureRandom RNG = new SecureRandom();
 
-        public ShareLink create(UUID evidenceId, Instant expiresAt, boolean allowOriginal) {
+        public ShareLink create(UUID evidence, Instant expiresAt, boolean allowOriginal) {
             var exp = (expiresAt == null) ? Instant.now().plus(7, ChronoUnit.DAYS) : expiresAt;
             var token = mintUniqueToken(24); // ~128-bit url-safe token
-            Evidence ev = evidenceRepo.findById(evidenceId).orElseThrow();
+            Evidence ev = evidenceRepo.findById(evidence).orElseThrow();
             var s = ShareLink.builder()
                     .token(token)
-                    .evidence(ev)
+                    .evidenceId(ev.getId())
                     .allowOriginal(allowOriginal)
                     .expiresAt(exp)
                     .build();

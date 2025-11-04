@@ -1,5 +1,7 @@
 package org.rights.locker.DTOs;
 
+import org.rights.locker.Entities.Evidence;
+
 import java.time.Instant;
 
 
@@ -7,5 +9,6 @@ import java.time.Instant;
 
 public record ShareCreateRequest(
         Instant expiresAt,     // nullable -> default inside service (e.g., now+7d)
-        boolean allowOriginal  // true = allow “original” download, else redacted-only
+        boolean allowOriginal// true = allow “original” download, else redacted-only
+
 ) {}
