@@ -1,8 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
-
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import {environment} from '../../environments/environment';
+import { environment } from '../../environments/environment';
 
 export interface Evidence {
   id: string;
@@ -19,8 +18,13 @@ export interface Page<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  number: number;   // current page (0-based)
-  size: number;     // page size
+  number: number;
+  size: number;
+}
+
+export interface FinalizeResponse {
+  evidence: Evidence;
+  shareToken?: string | null; // present if anonymous
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,8 +40,9 @@ export class EvidenceApi {
     return this.http.get<Page<Evidence>>(this.base, { params });
   }
 
-  get(id: string) { if(id == null){return null}
-    else{return this.http.get<Evidence>(`${this.base}/${id}`);} }
+  get(id: string): Observable<Evidence> {
+    return this.http.get<Evidence>(`${this.base}/${id}`);
+  }
 
   setLegalHold(id: string, legalHold: boolean) {
     return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });
@@ -48,7 +53,6 @@ export class EvidenceApi {
     return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
   }
 
-  // presign + finalize (matches your
   presignUpload(filename: string, contentType: string) {
     return this.http.post<{ key: string; url: string; headers: Record<string, string | string[]> }>(
       `${this.base}/presign-upload`,
@@ -60,6 +64,20 @@ export class EvidenceApi {
     key: string; title?: string; description?: string;
     capturedAtIso?: string; lat?: number; lon?: number; accuracy?: number;
   }) {
-    return this.http.post<Evidence>(`${this.base}/finalize`, payload);
+    return this.http.post<FinalizeResponse>(`${this.base}/finalize`, payload);
+  }
+
+  // ----- Share (public) -----
+  getShare(token: string) {
+    return this.http.get<{
+      token: string;
+      expiresAt: string;
+      allowOriginal: boolean;
+      evidence: {
+        id: string; title?: string; description?: string;
+        capturedAt?: string; status: string; hasRedacted: boolean; hasThumb: boolean;
+      };
+      links: { redactedUrl?: string|null; originalUrl?: string|null; thumbUrl?: string|null }
+    }>(`${environment.apiBase}/share/${token}`);
   }
 }

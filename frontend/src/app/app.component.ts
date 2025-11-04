@@ -1,4 +1,4 @@
-// shell/app.component.ts (sidebar + topbar)
+
 import { Component, inject } from '@angular/core';
 import {RouterLink, RouterLinkActive, RouterOutlet} from '@angular/router';
 import {AsyncPipe, NgIf} from '@angular/common';

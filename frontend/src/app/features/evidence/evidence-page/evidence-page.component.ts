@@ -9,7 +9,7 @@ import {ConvertComponent} from '../../public/convert/convert.component';
 @Component({
   standalone: true,
   selector: 'rl-evidence-page',
-  imports: [NgIf, EvidenceUploadComponent, EvidenceListComponent, EvidenceDetailComponent, ConvertComponent],
+  imports: [NgIf, EvidenceListComponent, EvidenceDetailComponent, ConvertComponent],
   templateUrl: 'evidence-page.component.html',
   styleUrls: ['evidence-page.component.css']
 })

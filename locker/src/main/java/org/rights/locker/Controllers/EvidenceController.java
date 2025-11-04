@@ -1,6 +1,8 @@
 package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.rights.locker.DTOs.FinalizeResponse;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.CustodyEventType;
@@ -11,19 +13,22 @@ import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Services.CustodyService;
 import org.rights.locker.Services.ProcessorService;
+import org.rights.locker.Services.ShareService;
 import org.rights.locker.Services.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.*;
 
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -33,7 +38,6 @@ import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/evidence")
@@ -48,56 +52,53 @@ public class EvidenceController {
     private final ProcessorService processor;
     private final CustodyService custody;
     private final StorageService storage;
+    private final ShareService shareService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    /* -----------------------------
-     *  List / Get
-     * ----------------------------- */
+    /* --------- List/Get (owner-scoped) --------- */
+
     @GetMapping
-    public Page<Evidence> list(@RequestParam(defaultValue = "0") int page,
-                               @RequestParam(defaultValue = "20") int size) {
-        return evidenceRepo.findAll(PageRequest.of(page, size));
+    public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
+                               @RequestParam(defaultValue="20") int size,
+                               @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return evidenceRepo.findAllByOwner(current, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id) {
-        return evidenceRepo.findById(id).orElseThrow();
+    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    /* -----------------------------
-     *  Presign upload (PUT to Originals)
-     * ----------------------------- */
+    /* --------- Upload: presign PUT to Originals --------- */
+
     public record PresignUploadReq(String filename, String contentType) {}
-
-
 
     @PostMapping("/presign-upload")
     public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
         String safeName = (req.filename() == null ? "file.bin" : req.filename())
                 .replaceAll("[^a-zA-Z0-9._-]", "_");
-        String key = java.util.UUID.randomUUID() + "/original-" + safeName;
+        String key = UUID.randomUUID() + "/original-" + safeName;
 
-        // delegate to S3StorageService
         Map<String, Object> signed = storage.signedPut(
                 key,
                 bucketOriginals,
-                15 * 60,                                  // 15 minutes
+                15 * 60, // 15 minutes
                 (req.contentType() == null ? "application/octet-stream" : req.contentType())
         );
 
-        // include the key so the client can later call /finalize with it
         return new java.util.HashMap<>() {{
             putAll(signed);
             put("key", key);
         }};
     }
 
+    /* --------- Finalize: compute hash/size, create row, enqueue --------- */
 
-    /* -----------------------------
-     *  Finalize upload (compute hash + size, create row, enqueue)
-     * ----------------------------- */
     public record FinalizeReq(
             String key,
             String title,
@@ -109,16 +110,19 @@ public class EvidenceController {
     ) {}
 
     @PostMapping("/finalize")
-    public Evidence finalizeUpload(@org.springframework.web.bind.annotation.RequestBody FinalizeReq req) throws Exception {
-        if (req.key() == null || req.key().isBlank()) throw new IllegalArgumentException("key is required");
+    public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
+                                           @AuthenticationPrincipal AppUser currentUser) throws Exception {
+        if (req.key() == null || req.key().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "key is required");
+        }
 
-        // Optional: HEAD for metadata/size (not strictly required; we’ll compute size anyway)
+        // Optional: HEAD (exists/metadata)
         HeadObjectResponse head = s3.headObject(HeadObjectRequest.builder()
                 .bucket(bucketOriginals).key(req.key()).build());
 
-        // Stream object to compute SHA-256 + size
+        // Stream to compute SHA-256 + size
         String sha256;
-        long size = 0;
+        long size = 0L;
         try (ResponseInputStream<GetObjectResponse> in = s3.getObject(GetObjectRequest.builder()
                 .bucket(bucketOriginals).key(req.key()).build());
              InputStream is = in) {
@@ -132,7 +136,7 @@ public class EvidenceController {
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
-        // Build Evidence entity
+        // Build + SAVE the Evidence (always save to get UUID)
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
                 .title(req.title())
@@ -143,15 +147,22 @@ public class EvidenceController {
                 .originalSha256(sha256)
                 .status(EvidenceStatus.RECEIVED)
                 .legalHold(false)
+                .owner(currentUser) // null if anonymous — allowed
                 .build();
 
-        // If you store geo as JTS Point, set it here (omit if not using spatial yet)
-        // if (req.lat() != null && req.lon() != null) { ... }
-
         ev = evidenceRepo.save(ev);
-        custody.record(ev, null, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
-        // Enqueue processing jobs (thumbnail + redact)
+        // Chain-of-custody
+        custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
+
+        // If anonymous, mint 24h share token so the browser has a way back
+        String shareToken = null;
+        if (currentUser == null) {
+            var share = shareService.create(ev.getId(), Instant.now().plus(java.time.Duration.ofHours(24)), false);
+            shareToken = share.getToken();
+        }
+
+        // Enqueue processing (thumb + redact)
         var thumb = jobRepo.save(ProcessingJob.builder()
                 .evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
         processor.publish(thumb);
@@ -160,69 +171,72 @@ public class EvidenceController {
                 .evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0).build());
         processor.publish(redact);
 
-        return ev;
+        return new FinalizeResponse(ev, shareToken);
     }
 
     private Instant parseInstant(String iso) {
         if (iso == null || iso.isBlank()) return null;
         try {
-            // Accept both OffsetDateTime and Instant strings
             return OffsetDateTime.parse(iso).toInstant();
         } catch (DateTimeParseException ex) {
             return Instant.parse(iso);
         }
     }
 
-    /* -----------------------------
-     *  Download (presign GET; prefer hot derivative if present)
-     * ----------------------------- */
+    /* --------- Download (owner-scoped presign GET) --------- */
+
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
-                                       @RequestParam(defaultValue = "redacted") String type) {
-        var ev = evidenceRepo.findById(id).orElseThrow();
+                                       @RequestParam(defaultValue = "redacted") String type,
+                                       @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        String bucket; String key;
-
+        String bucket;
+        String key;
         switch (type.toLowerCase()) {
             case "thumbnail" -> {
                 key = ev.getThumbnailKey();
-                if (key == null) { // fallback: original
-                    bucket = bucketOriginals; key = ev.getOriginalKey();
-                } else {
-                    bucket = bucketHot;
-                }
+                bucket = (key == null) ? bucketOriginals : bucketHot;
+                if (key == null) key = ev.getOriginalKey();
             }
             case "original" -> {
                 bucket = bucketOriginals;
                 key = ev.getOriginalKey();
             }
-            default /* "redacted" */ -> {
+            default /* redacted */ -> {
                 key = ev.getRedactedKey();
-                if (key == null) { // fallback: original
-                    bucket = bucketOriginals; key = ev.getOriginalKey();
-                } else {
-                    bucket = bucketHot;
-                }
+                bucket = (key == null) ? bucketOriginals : bucketHot;
+                if (key == null) key = ev.getOriginalKey();
             }
+        }
+        if (key == null || key.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not available yet.");
         }
 
         String finalKey = key;
         var presigned = presigner.presignGetObject(b -> b
                 .signatureDuration(java.time.Duration.ofMinutes(10))
                 .getObjectRequest(r -> r.bucket(bucket).key(finalKey)));
-
         return Map.of("url", presigned.url().toString());
     }
-    /* -----------------------------
-     *  Legal hold toggle
-     * ----------------------------- */
+
+    /* --------- Legal hold --------- */
+
     public record LegalHoldReq(boolean legalHold) {}
+
     @PostMapping("/{id}/legal-hold")
-    public Evidence setLegalHold(@PathVariable UUID id, @org.springframework.web.bind.annotation.RequestBody LegalHoldReq body) {
-        var ev = evidenceRepo.findById(id).orElseThrow();
+    public Evidence setLegalHold(@PathVariable UUID id,
+                                 @RequestBody LegalHoldReq body,
+                                 @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         ev.setLegalHold(body.legalHold());
         ev = evidenceRepo.save(ev);
-        custody.record(ev, null, body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,  Map.of("source", "presigned"));
+        custody.record(ev, current, body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,
+                Map.of("source", "ui"));
         return ev;
     }
 }

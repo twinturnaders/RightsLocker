@@ -17,14 +17,14 @@
   </div>
 </section>
 
-<!--  <section *ngIf="tab()=='state'">-->
-<!--    <input placeholder="Filter by state…" [(ngModel)]="q" />-->
-<!--    <div class="accordion">-->
-<!--      <details *ngFor="let s of states | stateFilter:q">-->
-<!--        <summary>{{s.name}}</summary>-->
+  <section *ngIf="tab()=='state'">
+    <select [(ngModel)]="q">
+      <option value="" disabled>Select a State</option>
+      <option *ngFor="let state of states" [value]="state">{{ state }}</option>
+    </select>
+    <p>Selected State: {{ q }}</p>
 <div class="card">
   <p class="muted">Add the specific statute/rule citations here (e.g., Evidence Rule 901 analogs, public records redaction rules, bodycam statutes).</p>
 </div>
-<!--      </details>-->
-<!--    </div>-->
-<!--  </section>-->
+
+  </section>

@@ -11,7 +11,7 @@ import { Evidence, EvidenceApi } from '../../../core/evidence.service';
 export class EvidenceDetailComponent implements OnChanges {
   private api = inject(EvidenceApi);
 
-  @Input() id?: string;     // when embedded
+  @Input() id?: string;
   e?: Evidence;
   loading = false;
   error = '';
@@ -19,9 +19,6 @@ export class EvidenceDetailComponent implements OnChanges {
   ngOnChanges(ch: SimpleChanges) {
     if (ch['id'] && this.id) this.fetch(this.id);
   }
-
-  // If you still use the route version elsewhere, you can keep a tiny
-  // wrapper component that reads ActivatedRoute and passes [id] in.
 
   fetch(id: string) {
     this.loading = true; this.error = '';
@@ -44,8 +41,7 @@ export class EvidenceDetailComponent implements OnChanges {
     return this.e?.id ? `/api/evidence/thumb?id=${this.e.id}` : undefined;
   }
 
-  download(type: 'redacted'|'thumbnail'|'original' = 'original') {
-    // default to 'original' to match backend defaulting and avoid early 404s
+  download(type: 'redacted'|'thumbnail'|'original' = 'redacted') {
     if (!this.e) return;
     this.api.download(this.e.id, type).subscribe(({ url }) => window.open(url, '_blank'));
   }

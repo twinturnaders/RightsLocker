@@ -40,6 +40,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // stateless API with Authorization header
                 .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(reg -> reg
+                        .requestMatchers("/api/share/**").permitAll()
+                        .requestMatchers("/api/evidence/*/claim").authenticated()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/evidence/**", "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.POST,

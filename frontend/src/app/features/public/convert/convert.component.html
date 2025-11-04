@@ -5,33 +5,31 @@
     <div class="badge">*Anonymously uploaded videos are auto-deleted from the server after 24 hours</div>
   </div>
 
-
   <div class="card form" style="margin-top:12px">
     <h2>Upload</h2>
     <label class="label">File</label>
     <input type="file" (change)="pick($event)"/>
 
-
     <div class="row" style="margin-top:10px;align-items:center">
-      <label class="label" style="margin:0">Check Box to auto-blur faces</label>
+      <label class="label" style="margin:0">Check box to auto-blur faces</label>
       <input type="checkbox" [(ngModel)]="blur"/>
     </div>
 
-
     <div *ngIf="progress>0" class="bar"><div [style.width.%]="progress"></div></div>
     <div *ngIf="msg" [style.color]="ok? 'var(--ok)':'var(--err)'">{{msg}}</div>
-
 
     <div class="row" style="margin-top:12px">
       <button class="btn primary" (click)="start()" [disabled]="!file || uploading">Start</button>
       <button class="btn ghost" (click)="reset()" [disabled]="uploading">Reset</button>
     </div>
 
-
     <div *ngIf="readyUrl" class="card" style="margin-top:12px">
       <h3 style="margin:0 0 8px">Download</h3>
-      <p class="help">Your package contains the processed media, hashes, metadata, and a printable report.</p>
-      <a class="btn" [href]="readyUrl">Download package</a>
+      <p class="help">Your package contains the processed media, hashes, metadata, a printable report, and a metadata PDF.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <a class="btn" [href]="readyUrl">Download package</a>
+        <a class="btn ghost" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank">View metadata PDF</a>
+      </div>
     </div>
   </div>
 </div>

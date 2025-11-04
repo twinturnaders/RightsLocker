@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.AppProps;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Repos.EvidenceRepo;
+import org.rights.locker.Services.PDFBuilderService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +41,7 @@ public class EvidencePackageController {
     private final S3Client s3;
     private final ObjectMapper om;
     private final AppProps app;
+    private final PDFBuilderService pdfService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -71,7 +73,7 @@ public class EvidencePackageController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentDisposition(ContentDisposition.attachment()
-                .filename("evidence-" + safeFile("evidence-" + ev.getId() + ".zip"))
+                .filename(safeFile("evidence-" + ev.getId() + ".zip"))
                 .build());
 
         StreamingResponseBody body = out -> {
@@ -127,7 +129,8 @@ public class EvidencePackageController {
                         )
                 );
                 putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
-
+                byte[] metaPdf = pdfService.buildMetadataPdf(metadata);
+                putBytes(zip, "metadata.pdf", metaPdf);
                 // 4) integrity.txt
                 StringBuilder sb = new StringBuilder();
                 sb.append("RightsLocker Integrity Summary\n");
@@ -198,6 +201,11 @@ public class EvidencePackageController {
     }
 
     private static String nullToDash(String s){ return (s == null || s.isBlank()) ? "-" : s; }
+    private static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(bytes);
+        zip.closeEntry();
+    }
 
     private static String safeFile(String name) {
         return name.replaceAll("[\\r\\n\\t\\\\/:*?\"<>|]", "_");

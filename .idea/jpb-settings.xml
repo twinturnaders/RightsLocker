@@ -25,5 +25,6 @@
     <exclude-change idName="webhook_event#provider" tagName="modifyDataType" />
     <exclude-change idName="evidence#redacted_key" tagName="modifyDataType" />
     <exclude-change idName="app_user#role" tagName="modifyDataType" />
+    <exclude-change idName="processing_job#type" tagName="addColumn" />
   </component>
 </project>
