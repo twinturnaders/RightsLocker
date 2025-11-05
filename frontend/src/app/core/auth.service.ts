@@ -6,7 +6,7 @@ import { environment } from '../../environments/environment';
 
 interface LoginRes{ accessToken:string }
 interface RegisterReq{ email:string; password:string; displayName:string }
-
+interface LoginRequest { email: string; password: string; }
 
 @Injectable({providedIn:'root'})
 export class AuthService{
