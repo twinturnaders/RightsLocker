@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -62,13 +63,15 @@ public class EvidenceController {
     @GetMapping
     public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
                                @RequestParam(defaultValue="20") int size,
-                               @AuthenticationPrincipal AppUser current) {
+                               Authentication auth) {
+        AppUser current = (auth != null && auth.getPrincipal() instanceof AppUser u) ? u : null;
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         return evidenceRepo.findAllByOwner(current, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser current) {
+    public Evidence get(@PathVariable UUID id, Authentication auth) {
+        AppUser current = (auth != null && auth.getPrincipal() instanceof AppUser u) ? u : null;
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         return evidenceRepo.findByIdAndOwner(id, current)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -183,46 +186,31 @@ public class EvidenceController {
         }
     }
 
-    /* --------- Download (owner-scoped presign GET) --------- */
-
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
-                                       @RequestParam(defaultValue = "redacted") String type,
-                                       @AuthenticationPrincipal AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, current)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                                       @RequestParam(defaultValue = "redacted") String type) {
+        var ev = evidenceRepo.findById(id).orElseThrow();
 
-        String bucket;
-        String key;
+        String bucket; String key;
         switch (type.toLowerCase()) {
             case "thumbnail" -> {
                 key = ev.getThumbnailKey();
-                bucket = (key == null) ? bucketOriginals : bucketHot;
-                if (key == null) key = ev.getOriginalKey();
+                if (key == null) { bucket = bucketOriginals; key = ev.getOriginalKey(); }
+                else { bucket = bucketHot; }
             }
-            case "original" -> {
-                bucket = bucketOriginals;
-                key = ev.getOriginalKey();
-            }
-            default /* redacted */ -> {
+            case "original" -> { bucket = bucketOriginals; key = ev.getOriginalKey(); }
+            default -> { // redacted
                 key = ev.getRedactedKey();
-                bucket = (key == null) ? bucketOriginals : bucketHot;
-                if (key == null) key = ev.getOriginalKey();
+                if (key == null) { bucket = bucketOriginals; key = ev.getOriginalKey(); }
+                else { bucket = bucketHot; }
             }
         }
-        if (key == null || key.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not available yet.");
-        }
-
         String finalKey = key;
         var presigned = presigner.presignGetObject(b -> b
                 .signatureDuration(java.time.Duration.ofMinutes(10))
                 .getObjectRequest(r -> r.bucket(bucket).key(finalKey)));
         return Map.of("url", presigned.url().toString());
     }
-
-    /* --------- Legal hold --------- */
 
     public record LegalHoldReq(boolean legalHold) {}
 

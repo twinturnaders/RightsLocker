@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.RabbitConfig;
 import org.rights.locker.Entities.ProcessingJob;
+import org.rights.locker.Enums.EvidenceStatus;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
 import org.rights.locker.Repos.EvidenceRepo;
@@ -86,8 +87,9 @@ public class ProcessorService {
                 ev.setRedactedKey(outputKey);
                 if (outputSizeB != null) ev.setRedactedSizeB(outputSizeB);
                 if (outputSha256 != null) ev.setRedactedKey(outputSha256);
-                // you may also update status if your Evidence tracks lifecycle
-                // ev.setStatus(EvidenceStatus.REDACTED);
+                ev.setRedactedKey(outputKey);
+                ev.setStatus(EvidenceStatus.REDACTED); // or READY if that’s your meaning
+                evidenceRepo.saveAndFlush(ev);
                 custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.REDACTED,
                         Map.of("key", outputKey, "sha256", safe(outputSha256)));
             }
