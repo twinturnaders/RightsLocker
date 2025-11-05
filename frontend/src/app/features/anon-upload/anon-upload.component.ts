@@ -8,8 +8,8 @@ import { EvidenceApi, Evidence} from '../../core/evidence.service';
   selector: 'anon-convert',
   standalone: true,
   imports: [FormsModule, NgIf],
-  templateUrl: './convert.component.html',
-  styleUrl: './convert.component.css'
+  templateUrl: './anon-upload.component.html',
+  styleUrl: './anon-upload.component.css'
 })
 export class AnonComponent {
   private http = inject(HttpClient);
