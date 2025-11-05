@@ -1,7 +1,10 @@
 import { Component, signal } from '@angular/core';
 import {NgForOf, NgIf} from '@angular/common';
 import {FormsModule} from '@angular/forms';
-
+interface state {
+  name:string;
+  code:string;
+}
 @Component({
   standalone: true,
   selector: 'rl-legal',
@@ -37,6 +40,11 @@ export class LegalComponent {
     {"name":"Virginia","code":"VA"},{"name":"Washington","code":"WA"},
     {"name":"West Virginia","code":"WV"},{"name":"Wisconsin","code":"WI"},
     {"name":"Wyoming","code":"WY"}]
+  onStateChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.q = target.value;
+    console.log('Selected State:', this.q);
+  }
 
-
+  protected readonly name = name;
 }

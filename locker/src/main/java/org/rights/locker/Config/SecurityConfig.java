@@ -31,10 +31,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
-    @Bean
-    JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
-        return new JwtAuthenticationFilter(jwtService, userRepo);
-    }
+
     @Bean
     SecurityFilterChain api(HttpSecurity http) throws Exception {
         http

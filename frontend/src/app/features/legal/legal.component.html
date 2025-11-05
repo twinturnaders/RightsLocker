@@ -18,9 +18,9 @@
 </section>
 
   <section *ngIf="tab()=='state'">
-    <select [(ngModel)]="q">
+    <select [(ngModel)]="q" (change)="onStateChange($event)">>
       <option value="" disabled>Select a State</option>
-      <option *ngFor="let state of states" [value]="state">{{ state }}</option>
+      <option *ngFor="let state  of states" [value]="state.code">{{ state.name }}</option>
     </select>
     <p>Selected State: {{ q }}</p>
 <div class="card">
