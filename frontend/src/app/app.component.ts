@@ -12,5 +12,8 @@ import { AuthService} from './core/auth.service';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  auth = inject(AuthService);
+  get auth(): AuthService {
+    return this._auth;
+  }
+  private _auth = inject(AuthService);
 }
