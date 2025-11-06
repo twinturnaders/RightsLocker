@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -79,5 +80,9 @@ public class EvidenceService {
 
     public Page<Evidence> list(EvidenceStatus status, Pageable pageable){
         return (status == null) ? repo.findAll(pageable) : repo.findByStatus(status, pageable);
+    }
+
+    public String getKey(Optional<Evidence> item) {
+        return item.map(Evidence::getOriginalKey).orElse(null);
     }
 }

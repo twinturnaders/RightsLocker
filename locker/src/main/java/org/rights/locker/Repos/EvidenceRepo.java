@@ -19,4 +19,5 @@ import java.util.UUID;
         Page<Evidence> findByStatus(EvidenceStatus status, Pageable pageable);
         Page<Evidence> findAllByOwner(AppUser owner, Pageable pageable);
         Optional<Evidence> findByIdAndOwner(UUID id, AppUser owner);
+
     }

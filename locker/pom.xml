@@ -78,16 +78,36 @@
 			<groupId>org.springframework.session</groupId>
 			<artifactId>spring-session-jdbc</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>opencv</artifactId>
-			<version>4.1.0-1.5.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-core</artifactId>
-			<version>1.0.10</version>
-		</dependency>
+
+				<dependency>
+					<groupId>org.bytedeco</groupId>
+					<artifactId>javacv-platform</artifactId>
+					<version>1.5.10</version>
+				</dependency>
+				<dependency>
+					<groupId>org.bytedeco</groupId>
+					<artifactId>ffmpeg-platform</artifactId>
+					<version>6.1.1-1.5.10</version>
+				</dependency>
+
+
+
+
+			<!-- This one line is often enough -->
+			<dependency>
+				<groupId>org.bytedeco</groupId>
+				<artifactId>javacv-platform</artifactId>
+				<version>1.5.10</version>
+			</dependency>
+
+			<!-- (Optional) Pin FFmpeg platform explicitly -->
+			<dependency>
+				<groupId>org.bytedeco</groupId>
+				<artifactId>ffmpeg-platform</artifactId>
+				<version>6.1.1-1.5.10</version>
+			</dependency>
+
+
 		<dependency>
 			<groupId>com.openhtmltopdf</groupId>
 			<artifactId>openhtmltopdf-slf4j</artifactId>
@@ -212,8 +232,8 @@
 			<artifactId>rabbitmq</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
 
+</dependencies>
 	<build>
 		<plugins>
 			<plugin>
