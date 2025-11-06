@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.AppProps;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Services.PDFBuilderService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -52,59 +54,53 @@ public class EvidencePackageController {
     @GetMapping("/{id}/package")
     public ResponseEntity<StreamingResponseBody> downloadPackage(
             @PathVariable UUID id,
-            @RequestParam(defaultValue = "original") String type,   // default to original
-            @RequestParam(defaultValue = "true") boolean includeThumb
+            @RequestParam(defaultValue = "original") String type,
+            @RequestParam(defaultValue = "true") boolean includeThumb,
+            @AuthenticationPrincipal AppUser current
     ) {
-        Evidence ev = evidenceRepo.findById(id).orElseThrow();
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
-        final boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
-        final String key = "original".equalsIgnoreCase(type)
-                ? ev.getOriginalKey()
+        Evidence ev = evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
+        String key = "original".equalsIgnoreCase(type) ? ev.getOriginalKey()
                 : (hasRedacted ? ev.getRedactedKey() : ev.getOriginalKey());
-        final String bucket = "original".equalsIgnoreCase(type)
-                ? bucketOriginals
+        String bucket = "original".equalsIgnoreCase(type) ? bucketOriginals
                 : (hasRedacted ? bucketHot : bucketOriginals);
-        final String filenameBase = ("original".equalsIgnoreCase(type) || !hasRedacted) ? "original" : "redacted";
+        String filenameBase = ("original".equalsIgnoreCase(type) || !hasRedacted) ? "original" : "redacted";
 
-        if (key == null || key.isBlank()) {
+        if (key == null || key.isBlank())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Primary media is not available yet.");
-        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(safeFile("evidence-" + ev.getId() + ".zip"))
-                .build());
+                .filename("evidence-" + safeFile(ev.getId() + ".zip")).build());
 
         StreamingResponseBody body = out -> {
             try (ZipOutputStream zip = new ZipOutputStream(out)) {
-                // 1) Primary media
-                log.info("ZIP primary fetch: bucket={}, key={}", bucket, key);
+                // 1) media
                 String mediaShaHex;
                 long mediaSize;
                 try (ResponseInputStream<GetObjectResponse> mediaIn =
                              s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build())) {
                     MessageDigest mediaMd = MessageDigest.getInstance("SHA-256");
-                    String mediaName = filenameBase + guessExt(key);
-                    mediaSize = copyToZip(zip, mediaIn, mediaName, mediaMd);
+                    mediaSize = copyToZip(zip, mediaIn, filenameBase + guessExt(key), mediaMd);
                     mediaShaHex = HexFormat.of().formatHex(mediaMd.digest());
                 } catch (NoSuchKeyException nsk) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "Media not available yet. Try again after processing finishes.");
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not available yet. Try later.");
                 }
 
-                // 2) Optional thumbnail
+                // 2) optional thumbnail
                 String thumbShaHex = null;
                 if (includeThumb && ev.getThumbnailKey() != null && !ev.getThumbnailKey().isBlank()) {
-                    try (ResponseInputStream<GetObjectResponse> thIn =
-                                 s3.getObject(GetObjectRequest.builder()
-                                         .bucket(bucketHot).key(ev.getThumbnailKey()).build())) {
+                    try (ResponseInputStream<GetObjectResponse> th =
+                                 s3.getObject(GetObjectRequest.builder().bucket(bucketHot).key(ev.getThumbnailKey()).build())) {
                         MessageDigest thMd = MessageDigest.getInstance("SHA-256");
-                        copyToZip(zip, thIn, "thumb.jpg", thMd);
+                        copyToZip(zip, th, "thumb.jpg", thMd);
                         thumbShaHex = HexFormat.of().formatHex(thMd.digest());
-                    } catch (Exception ignore) {
-                        // thumbnails are optional; ignore any problems here
-                    }
+                    } catch (Exception ignore) {}
                 }
 
                 // 3) metadata.json
@@ -122,16 +118,15 @@ public class EvidencePackageController {
                         (isRedacted ? "redacted" : "delivered"), Map.of(
                                 "sha256", mediaShaHex,
                                 "sizeBytes", mediaSize
-                        ),
-                        "processing", Map.of(
-                                "algorithm", (isRedacted ? "face-blur" : "none"),
-                                "algorithmVersion", (isRedacted ? "rl-redact-0.3.1" : "n/a")
                         )
                 );
                 putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
+
+                // 4) metadata.pdf
                 byte[] metaPdf = pdfService.buildMetadataPdf(metadata);
                 putBytes(zip, "metadata.pdf", metaPdf);
-                // 4) integrity.txt
+
+                // 5) integrity.txt
                 StringBuilder sb = new StringBuilder();
                 sb.append("RightsLocker Integrity Summary\n");
                 sb.append("Issuer: ").append(app.getAttestation().getIssuer()).append("\n");
@@ -141,13 +136,13 @@ public class EvidencePackageController {
                 if (thumbShaHex != null) sb.append("Thumbnail SHA-256: ").append(thumbShaHex).append("\n");
                 putText(zip, "integrity.txt", sb.toString());
 
-                // 5) printable report
+                // 6) printable HTML report (optional)
                 putText(zip, "Evidence_Report.html",
                         buildHtmlReport(ev, ev.getOriginalSha256(),
                                 ev.getOriginalSizeB() == null ? -1 : ev.getOriginalSizeB(),
                                 isRedacted, mediaShaHex, mediaSize));
 
-                // 6) optional HMAC over metadata.json
+                // 7) optional HMAC signature over metadata.json
                 if (app.getAttestation().isEnabled()
                         && app.getAttestation().getHmacSecret() != null
                         && !app.getAttestation().getHmacSecret().isBlank()) {
@@ -162,15 +157,14 @@ public class EvidencePackageController {
 
                 zip.finish();
             } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                throw new RuntimeException("Failed to generate report", e);
+                throw new RuntimeException("Failed to generate package", e);
             }
         };
 
         return ResponseEntity.ok().headers(headers).body(body);
     }
 
-    /* ----------------- helpers ----------------- */
-
+    /* helpers */
     private static long copyToZip(ZipOutputStream zip, InputStream in, String name, MessageDigest md) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         byte[] buf = new byte[BUF];
@@ -190,6 +184,12 @@ public class EvidencePackageController {
         zip.closeEntry();
     }
 
+    private static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(bytes);
+        zip.closeEntry();
+    }
+
     private static String guessExt(String key) {
         String k = key == null ? "" : key.toLowerCase();
         if (k.endsWith(".mp4")) return ".mp4";
@@ -201,11 +201,6 @@ public class EvidencePackageController {
     }
 
     private static String nullToDash(String s){ return (s == null || s.isBlank()) ? "-" : s; }
-    private static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
-        zip.putNextEntry(new ZipEntry(name));
-        zip.write(bytes);
-        zip.closeEntry();
-    }
 
     private static String safeFile(String name) {
         return name.replaceAll("[\\r\\n\\t\\\\/:*?\"<>|]", "_");
@@ -221,29 +216,25 @@ public class EvidencePackageController {
         return """
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>RightsLocker Evidence Report</title>
+<head><meta charset="utf-8"><title>RightsLocker Evidence Report</title>
 <style>
   body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;margin:24px;line-height:1.45}
   .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0}
   h1{margin:0 0 8px} h2{margin:16px 0 8px}
-  .grid{display:grid;grid-template-columns:180px 1fr;gap:8px}
-  .muted{color:#6b7280} .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
   table{width:100%;border-collapse:collapse;margin-top:8px}
   td,th{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
-</style>
-</head>
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
+</style></head>
 <body>
   <h1>RightsLocker Evidence Report</h1>
-  <div class="muted">Issued: %s · Issuer: %s</div>
+  <div>Issued: %s · Issuer: %s</div>
 
   <div class="card">
-    <div class="grid">
-      <div><b>Evidence ID</b></div><div>%s</div>
-      <div><b>Title</b></div><div>%s</div>
-      <div><b>Captured at (UTC)</b></div><div>%s</div>
-    </div>
+    <table>
+      <tr><th>Evidence ID</th><td>%s</td></tr>
+      <tr><th>Title</th><td>%s</td></tr>
+      <tr><th>Captured at (UTC)</th><td>%s</td></tr>
+    </table>
   </div>
 
   <h2>Integrity</h2>
@@ -256,19 +247,17 @@ public class EvidencePackageController {
   <h2>Processing</h2>
   <div class="card">
     <div><b>Method:</b> %s</div>
-    <div class="muted">If enabled, faces detected via Haar cascade and blurred (Gaussian kernel 45×45, σ=30). Version: rl-redact-0.3.1</div>
+    <div style="color:#6b7280">If enabled, faces detected and blurred automatically.</div>
   </div>
 
-  <div class="muted" style="margin-top:24px">
-    Note: Times are UTC. This report summarizes cryptographic digests and processing steps applied by RightsLocker.
+  <div style="color:#6b7280;margin-top:24px">
+    Note: Times are UTC. This report summarizes digests and processing steps applied by RightsLocker.
   </div>
 </body>
 </html>
 """.formatted(
                 now, app.getAttestation().getIssuer(),
-                ev.getId().toString(),
-                title,
-                cap,
+                ev.getId(), title, cap,
                 nullToDash(originalSha), (originalSize >= 0 ? Long.toString(originalSize) : "—"),
                 deliveredKind, deliveredSha, (deliveredSize >= 0 ? Long.toString(deliveredSize) : "—"),
                 (isRedacted ? "Face blur (automatic)" : "None")

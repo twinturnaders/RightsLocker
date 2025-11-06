@@ -19,16 +19,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.io.InputStream;
@@ -58,39 +54,35 @@ public class EvidenceController {
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    /* --------- List/Get (owner-scoped) --------- */
-
+    /* auth-only list */
     @GetMapping
     public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
                                @RequestParam(defaultValue="20") int size,
-                               Authentication auth) {
-        AppUser current = (auth != null && auth.getPrincipal() instanceof AppUser u) ? u : null;
+                               @AuthenticationPrincipal AppUser current) {
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         return evidenceRepo.findAllByOwner(current, PageRequest.of(page, size));
     }
 
+    /* auth-only get */
     @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id, Authentication auth) {
-        AppUser current = (auth != null && auth.getPrincipal() instanceof AppUser u) ? u : null;
+    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser current) {
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         return evidenceRepo.findByIdAndOwner(id, current)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    /* --------- Upload: presign PUT to Originals --------- */
-
+    /* presign upload (public) */
     public record PresignUploadReq(String filename, String contentType) {}
-
     @PostMapping("/presign-upload")
     public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
         String safeName = (req.filename() == null ? "file.bin" : req.filename())
                 .replaceAll("[^a-zA-Z0-9._-]", "_");
-        String key = UUID.randomUUID() + "/original-" + safeName;
+        String key = java.util.UUID.randomUUID() + "/original-" + safeName;
 
         Map<String, Object> signed = storage.signedPut(
                 key,
                 bucketOriginals,
-                15 * 60, // 15 minutes
+                15 * 60,
                 (req.contentType() == null ? "application/octet-stream" : req.contentType())
         );
 
@@ -100,46 +92,26 @@ public class EvidenceController {
         }};
     }
 
-    /* --------- Finalize: compute hash/size, create row, enqueue --------- */
-
+    /* finalize (public) */
     public record FinalizeReq(
-            String key,
-            String title,
-            String description,
-            String capturedAtIso,
-            Double lat,
-            Double lon,
-            Double accuracy
+            String key, String title, String description,
+            String capturedAtIso, Double lat, Double lon, Double accuracy
     ) {}
 
     @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal AppUser currentUser) throws Exception {
-        if (req.key() == null || req.key().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "key is required");
-        }
 
-        // Optional: HEAD (exists/metadata)
-        HeadObjectResponse head = s3.headObject(HeadObjectRequest.builder()
-                .bucket(bucketOriginals).key(req.key()).build());
-
-        // Stream to compute SHA-256 + size
-        String sha256;
-        long size = 0L;
-        try (ResponseInputStream<GetObjectResponse> in = s3.getObject(GetObjectRequest.builder()
-                .bucket(bucketOriginals).key(req.key()).build());
+        // compute SHA-256 + size from object
+        String sha256; long size = 0;
+        try (ResponseInputStream<GetObjectResponse> in = s3.getObject(b -> b.bucket(bucketOriginals).key(req.key()));
              InputStream is = in) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[8192];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                md.update(buf, 0, r);
-                size += r;
-            }
+            byte[] buf = new byte[8192]; int r;
+            while ((r = is.read(buf)) != -1) { md.update(buf, 0, r); size += r; }
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
-        // Build + SAVE the Evidence (always save to get UUID)
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
                 .title(req.title())
@@ -150,22 +122,23 @@ public class EvidenceController {
                 .originalSha256(sha256)
                 .status(EvidenceStatus.RECEIVED)
                 .legalHold(false)
-                .owner(currentUser) // null if anonymous — allowed
                 .build();
 
+        if (currentUser != null) {
+            ev.setOwner(currentUser);
+        }
         ev = evidenceRepo.save(ev);
 
-        // Chain-of-custody
         custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
-        // If anonymous, mint 24h share token so the browser has a way back
+        // if anonymous, mint a share token valid 24h for redacted/original (original not allowed by default)
         String shareToken = null;
         if (currentUser == null) {
             var share = shareService.create(ev.getId(), Instant.now().plus(java.time.Duration.ofHours(24)), false);
             shareToken = share.getToken();
         }
 
-        // Enqueue processing (thumb + redact)
+        // enqueue processing (thumb + redact)
         var thumb = jobRepo.save(ProcessingJob.builder()
                 .evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
         processor.publish(thumb);
@@ -177,34 +150,31 @@ public class EvidenceController {
         return new FinalizeResponse(ev, shareToken);
     }
 
-    private Instant parseInstant(String iso) {
-        if (iso == null || iso.isBlank()) return null;
-        try {
-            return OffsetDateTime.parse(iso).toInstant();
-        } catch (DateTimeParseException ex) {
-            return Instant.parse(iso);
-        }
-    }
-
+    /* presigned GET per type (auth only) */
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
-                                       @RequestParam(defaultValue = "redacted") String type) {
-        var ev = evidenceRepo.findById(id).orElseThrow();
+                                       @RequestParam(defaultValue = "redacted") String type,
+                                       @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         String bucket; String key;
         switch (type.toLowerCase()) {
             case "thumbnail" -> {
                 key = ev.getThumbnailKey();
-                if (key == null) { bucket = bucketOriginals; key = ev.getOriginalKey(); }
-                else { bucket = bucketHot; }
+                bucket = (key == null) ? bucketOriginals : bucketHot;
+                if (key == null) key = ev.getOriginalKey();
             }
             case "original" -> { bucket = bucketOriginals; key = ev.getOriginalKey(); }
-            default -> { // redacted
+            default /* redacted */ -> {
                 key = ev.getRedactedKey();
-                if (key == null) { bucket = bucketOriginals; key = ev.getOriginalKey(); }
-                else { bucket = bucketHot; }
+                bucket = (key == null) ? bucketOriginals : bucketHot;
+                if (key == null) key = ev.getOriginalKey();
             }
         }
+        if (key == null || key.isBlank()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+
         String finalKey = key;
         var presigned = presigner.presignGetObject(b -> b
                 .signatureDuration(java.time.Duration.ofMinutes(10))
@@ -212,19 +182,24 @@ public class EvidenceController {
         return Map.of("url", presigned.url().toString());
     }
 
+    /* legal hold toggle (auth only) */
     public record LegalHoldReq(boolean legalHold) {}
-
     @PostMapping("/{id}/legal-hold")
     public Evidence setLegalHold(@PathVariable UUID id,
                                  @RequestBody LegalHoldReq body,
                                  @AuthenticationPrincipal AppUser current) {
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, current)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var ev = evidenceRepo.findByIdAndOwner(id, current).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         ev.setLegalHold(body.legalHold());
         ev = evidenceRepo.save(ev);
-        custody.record(ev, current, body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,
-                Map.of("source", "ui"));
+        custody.record(ev, current, body.legalHold()
+                ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF, Map.of());
         return ev;
+    }
+
+    private static Instant parseInstant(String iso) {
+        if (iso == null || iso.isBlank()) return null;
+        try { return OffsetDateTime.parse(iso).toInstant(); }
+        catch (DateTimeParseException ex) { return Instant.parse(iso); }
     }
 }
