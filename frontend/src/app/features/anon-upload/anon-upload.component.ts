@@ -70,13 +70,13 @@ export class AnonComponent {
 
 // If anonymous, backend returns shareToken (you coded this). Use it.
       if (ev?.shareToken) {
-        this.readyUrl = `/${this.base}/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
+        this.readyUrl = `${this.base}/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
         this.ok = true; this.msg = 'Ready!'; this.uploading = false;
         // Optionally show metadata PDF
-        this.metaPdfUrl = `/${this.base}/share/${ev.shareToken}/metadata.pdf`;
+        this.metaPdfUrl = `${this.base}/share/${ev.shareToken}/metadata.pdf`;
       } else {
         // Fallback for authed flow
-        this.readyUrl = `/${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
+        this.readyUrl = `${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
       }
       const fin = await this.api.finalize({
         key: this.key,
