@@ -9,7 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
-import java.lang.ScopedValue;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,5 +20,5 @@ import java.util.UUID;
         Page<Evidence> findAllByOwner(AppUser owner, Pageable pageable);
         Optional<Evidence> findByIdAndOwner(UUID id, AppUser owner);
 
-     
+
     }
