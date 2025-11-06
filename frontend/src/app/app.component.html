@@ -1,7 +1,8 @@
 <div class="layout">
   <aside class="sidebar">
-    <div class="brand">RightsLocker</div>
+
     <nav>
+      <logo width="280px" variant="dark" [showWordmark]="true"></logo>
       <nav>
         <a routerLink="/upload" routerLinkActive="active">Convert</a>
         <a *ngIf="auth.isAuthed$ | async" routerLink="/evidence" routerLinkActive="active">Evidence</a>

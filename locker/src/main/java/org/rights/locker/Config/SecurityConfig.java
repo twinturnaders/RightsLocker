@@ -59,7 +59,13 @@ public class SecurityConfig {
 
                         // Public share capability links
                         .requestMatchers("/api/share/**").permitAll()
-
+                        .requestMatchers(
+                                "/api/evidence/presign-upload",
+                                "/api/evidence/finalize",
+                                "/api/evidence/*/package",
+                                "/api/evidence/thumb",
+                                "/api/share/**",
+                                "/actuator/health").permitAll()
                         // Public health/docs (optional)
                         .requestMatchers("/actuator/health", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
