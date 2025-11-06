@@ -36,12 +36,29 @@ export class AnonComponent {
 
   async start() {
     if (!this.file) return;
-    this.uploading = true; this.msg = ''; this.readyUrl = ''; this.metaPdfUrl = '';
+    this.uploading = true;
+    this.progress = 0;
 
     try {
-      // 1) presign
-      const presign = await this.api.presignUpload(this.file.name, this.file.type || 'application/octet-stream').toPromise();
+      // 1) presign via your EvidenceApi (recommended)
+      const presign = await this.api
+        .presignUpload(this.file.name, this.file.type || 'application/octet-stream')
+        .toPromise();
 
+      // 2) PUT with progress
+      await new Promise<void>((resolve, reject) => {
+        this.http.put(presign!.url, this.file, { reportProgress: true, observe: 'events' as const })
+          .subscribe({
+            next: ev => {
+              if (ev.type === HttpEventType.UploadProgress) {
+                const total = ev.total ?? this.file!.size ?? 1; // fallback if total is missing
+                this.progress = Math.min(100, Math.round((ev.loaded / total) * 100));
+              }
+            },
+            error: reject,
+            complete: () => { this.progress = 100; resolve(); }
+          });
+      });
 
 
       // 2) PUT with progress
@@ -92,6 +109,10 @@ export class AnonComponent {
       this.uploading = false;
     }
 
-
+  } catch (e: any) {
+    this.uploading = false;
+    throw e;
   }
+
+
 }

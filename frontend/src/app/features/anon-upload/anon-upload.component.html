@@ -15,8 +15,14 @@
       <input type="checkbox" [(ngModel)]="blur"/>
     </div>
 
-    <div *ngIf="progress>0" class="bar"><div [style.width.%]="progress"></div></div>
-    <div *ngIf="msg" [style.color]="ok? 'var(--ok)':'var(--err)'">{{msg}}</div>
+    <input type="file" (change)="pick($event)"/>
+
+    <!-- Progress bar -->
+    <div class="bar" *ngIf="uploading">
+      <div class="bar-fill" [style.width.%]="progress"></div>
+    </div>
+    <div class="bar-text" *ngIf="uploading">{{progress}}%</div>
+
 
     <div class="row" style="margin-top:12px">
       <button class="btn primary" (click)="start()" [disabled]="!file || uploading">Start</button>
@@ -27,8 +33,8 @@
       <h3 style="margin:0 0 8px">Download</h3>
       <p class="help">Your package contains the processed media, hashes, metadata, a printable report, and a metadata PDF.</p>
       <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <a class="btn" [href]="readyUrl">Download package</a>
-        <a class="btn ghost" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank">View metadata PDF</a>
+        <a class="btn" [href]="readyUrl" target="_blank" rel="noopener">Download package</a>
+        <a class="btn ghost" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank" rel="noopener">View metadata PDF</a>
       </div>
     </div>
   </div>
