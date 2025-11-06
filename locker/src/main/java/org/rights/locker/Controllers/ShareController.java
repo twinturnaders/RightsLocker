@@ -63,48 +63,51 @@ public class ShareController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evidence not found"));
 
         boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
-        boolean hasThumb = ev.getThumbnailKey() != null && !ev.getThumbnailKey().isBlank();
+        boolean hasThumb    = ev.getThumbnailKey() != null && !ev.getThumbnailKey().isBlank();
 
-        var redactedUrl = hasRedacted ? presign(bucketHot, ev.getRedactedKey(), Duration.ofMinutes(10)) : null;
+        var redactedUrl = hasRedacted ? presign(bucketHot,        ev.getRedactedKey(),  Duration.ofMinutes(10)) : null;
         var originalUrl = share.isAllowOriginal() ? presign(bucketOriginals, ev.getOriginalKey(), Duration.ofMinutes(10)) : null;
-        var thumbUrl    = hasThumb ? presign(bucketHot, ev.getThumbnailKey(), Duration.ofMinutes(10)) : null;
+        var thumbUrl    = hasThumb    ? presign(bucketHot,        ev.getThumbnailKey(), Duration.ofMinutes(10)) : null;
 
-        var payload = Map.of(
-                "token", share.getToken(),
-                "expiresAt", share.getExpiresAt(),
-                "allowOriginal", share.isAllowOriginal(),
-                "evidence", Map.of(
-                        "id", ev.getId(),
-                        "title", ev.getTitle(),
-                        "description", ev.getDescription(),
-                        "capturedAt", ev.getCapturedAt(),
-                        "status", ev.getStatus(),
-                        "hasRedacted", hasRedacted,
-                        "hasThumb", hasThumb
-                ),
-                "links", Map.of(
-                        "redactedUrl", redactedUrl,
-                        "originalUrl", originalUrl,
-                        "thumbUrl", thumbUrl
-                )
+        // build inner maps without nulls
+        var evidenceMap = mapNonNull(
+                "id",         ev.getId(),
+                "title",      ev.getTitle(),
+                "description",ev.getDescription(),
+                "capturedAt", ev.getCapturedAt(),
+                "status",     ev.getStatus() == null ? null : ev.getStatus().name(),
+                "hasRedacted",hasRedacted,
+                "hasThumb",   hasThumb
+        );
+        var linksMap = mapNonNull(
+                "redactedUrl", redactedUrl,
+                "originalUrl", originalUrl,
+                "thumbUrl",    thumbUrl
         );
 
+        // outer map has only non-null values too
+        var payload = mapNonNull(
+                "token",         share.getToken(),
+                "expiresAt",     share.getExpiresAt(),
+                "allowOriginal", share.isAllowOriginal(),
+                "evidence",      evidenceMap,
+                "links",         linksMap
+        );
         return ResponseEntity.ok(payload);
     }
-
     /* public: printable metadata pdf */
     @GetMapping(value = "/share/{token}/metadata.pdf", produces = "application/pdf")
     public ResponseEntity<byte[]> shareMetadataPdf(@PathVariable String token) {
         var s = shareService.requireActive(token);
         var ev = evidenceRepo.findById(s.getEvidenceId()).orElseThrow();
 
-        var metadata = Map.of(
+        var metadata = mapNonNull(
                 "evidenceId", ev.getId().toString(),
-                "title", ev.getTitle(),
+                "title",      ev.getTitle(),
                 "capturedAt", ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()),
-                "ingestedAt", ev.getCreatedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()),
-                "generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
-                "access", Map.of("viaShareToken", s.getToken(), "allowOriginal", s.isAllowOriginal())
+                "ingestedAt", ev.getCreatedAt()  == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()),
+                "generatedAt",DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+                "access",     mapNonNull("viaShareToken", s.getToken(), "allowOriginal", s.isAllowOriginal())
         );
 
         byte[] pdf = pdfService.buildMetadataPdf(metadata);
@@ -114,15 +117,16 @@ public class ShareController {
     }
 
     /* public: packaged zip (media + metadata.json + metadata.pdf + integrity.txt) with S3 preflight */
-    @GetMapping("/api/share/{token}/package")
+    @GetMapping("/share/{token}/package")
     public ResponseEntity<StreamingResponseBody> downloadSharedPackage(
             @PathVariable String token,
             @RequestParam(defaultValue = "redacted") String type
     ) {
-        var link = shareLinkRepo.findByToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        var ev = evidenceRepo.findById(link.getEvidenceId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var link = shareLinkRepo.findByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var ev = evidenceRepo.findById(link.getEvidenceId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        // Decide which object we’ll include
         String chosenKey = switch (type.toLowerCase()) {
             case "redacted" -> (ev.getRedactedKey() != null ? ev.getRedactedKey() : ev.getOriginalKey());
             case "original" -> ev.getOriginalKey();
@@ -130,50 +134,47 @@ public class ShareController {
         };
         if (chosenKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No asset available to package");
 
+        // choose bucket based on which key we picked
+        String chosenBucket = chosenKey.equals(ev.getOriginalKey()) ? bucketOriginals : bucketHot;
+
         StreamingResponseBody body = out -> {
             try (var zos = new java.util.zip.ZipOutputStream(out)) {
 
-                // 1) manifest.json (no nulls)
                 var manifest = mapNonNull(
                         "evidenceId", ev.getId().toString(),
-                        "title", ev.getTitle(),
-                        "description", ev.getDescription(),
+                        "title",      ev.getTitle(),
+                        "description",ev.getDescription(),
                         "capturedAt", ev.getCapturedAt(),
-                        "status", ev.getStatus() != null ? ev.getStatus().name() : null,
+                        "status",     ev.getStatus() == null ? null : ev.getStatus().name(),
                         "includedObjectKey", chosenKey
                 );
-                var manifestBytes = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(manifest);
+                var manifestBytes = om.writeValueAsBytes(manifest);
                 zos.putNextEntry(new java.util.zip.ZipEntry("manifest.json"));
                 zos.write(manifestBytes);
                 zos.closeEntry();
 
-                // 2) media (stream from S3)
+                // media from the correct bucket
                 zos.putNextEntry(new java.util.zip.ZipEntry(filenameForKey(chosenKey)));
-                s3.getObject(b -> b.bucket(bucketHot).key(chosenKey)).transferTo(zos);
+                s3.getObject(b -> b.bucket(chosenBucket).key(chosenKey)).transferTo(zos);
                 zos.closeEntry();
 
-                // 3) metadata.pdf (try to generate; skip on failure)
                 byte[] pdfBytes = null;
-                try {
-                    pdfBytes = generateMetadataPdf(ev, link);
-                } catch (Exception ignore) { /* skip pdf gracefully */ }
+                try { pdfBytes = generateMetadataPdf(ev, link); } catch (Exception ignore) {}
 
                 if (pdfBytes != null && pdfBytes.length > 0) {
                     zos.putNextEntry(new java.util.zip.ZipEntry("metadata.pdf"));
                     zos.write(pdfBytes);
                     zos.closeEntry();
                 }
-
                 zos.finish();
             }
         };
 
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"evidence-" + ev.getId() + ".zip\"")
-                .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(body);
     }
-
     /* owner revokes share */
     @PostMapping("/share/{token}/revoke")
     public ShareLink revoke(@PathVariable String token){
