@@ -2,7 +2,9 @@ import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
-import { EvidenceApi, Evidence} from '../../core/evidence.service';
+import {EvidenceApi, Evidence, FinalizeResponse} from '../../core/evidence.service';
+import {environment} from '../../../environments/environment';
+import {finalize} from 'rxjs';
 
 @Component({
   selector: 'anon-convert',
@@ -14,10 +16,12 @@ import { EvidenceApi, Evidence} from '../../core/evidence.service';
 export class AnonComponent {
   private http = inject(HttpClient);
   private api = inject(EvidenceApi);
+  private base = `${environment.apiBase}`;
 
   file?: File; blur = false; uploading = false; progress = 0; ok = false;
   msg = ''; readyUrl = ''; metaPdfUrl = ''; shareToken = ''; key = ''; title = '';
   @Output() uploaded = new EventEmitter<Evidence>(); // still emits when authed flows use this
+
 
   pick(e: Event) {
     const f = (e.target as HTMLInputElement).files?.[0];
@@ -36,49 +40,58 @@ export class AnonComponent {
 
     try {
       // 1) presign
-      const presign: any = await this.http.post(
-        '/api/evidence/presign-upload',
-        { filename: this.file.name, contentType: this.file.type || 'application/octet-stream' }
-      ).toPromise();
-      this.key = presign.key;
+      const presign = await this.api.presignUpload(this.file.name, this.file.type || 'application/octet-stream').toPromise();
+
+
 
       // 2) PUT with progress
-      await new Promise<void>((resolve, reject) => {
-        this.http.put(presign.url, this.file, { reportProgress: true, observe: 'events' as any })
-          .subscribe({
-            next: ev => {
-              if ((ev as any).type === HttpEventType.UploadProgress) {
-                const p = ev as any;
-                this.progress = Math.round(100 * (p.loaded / p.total));
-              }
-            },
-            error: reject,
-            complete: () => resolve()
-          });
-      });
-
+      if(presign != null) {
+        this.key = presign.key;
+        await new Promise<void>((resolve, reject) => {
+          this.http.put(presign.url, this.file, {reportProgress: true, observe: 'events' as any})
+            .subscribe({
+              next: ev => {
+                if ((ev as any).type === HttpEventType.UploadProgress) {
+                  const p = ev as any;
+                  this.progress = Math.round(100 * (p.loaded / p.total));
+                }
+              },
+              error: reject,
+              complete: () => resolve()
+            });
+        });
+      }
       // 3) finalize (server computes hash, enqueues jobs)
 
-      const ev: any = await this.http.post('/api/evidence/finalize',{
+
+      const ev: any = await this.http.post(`${this.base}/evidence/finalize`,{
         key:this.key, title:this.title, description:'Public convert', capturedAtIso:null
       }).toPromise();
 
 // If anonymous, backend returns shareToken (you coded this). Use it.
       if (ev?.shareToken) {
-        this.readyUrl = `/api/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
+        this.readyUrl = `/${this.base}/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
         this.ok = true; this.msg = 'Ready!'; this.uploading = false;
         // Optionally show metadata PDF
-        this.metaPdfUrl = `/api/share/${ev.shareToken}/metadata.pdf`;
+        this.metaPdfUrl = `/${this.base}/share/${ev.shareToken}/metadata.pdf`;
       } else {
         // Fallback for authed flow
-        this.readyUrl = `/api/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
+        this.readyUrl = `/${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
       }
-
+      const fin = await this.api.finalize({
+        key: this.key,
+        title: this.title,
+        description: this.blur ? 'Public convert (blur=on)' : 'Public convert',
+        capturedAtIso: new Date().toISOString(),
+        redactMode: this.blur ? 'BLUR' : 'NONE'     // <-- send it
+      }).toPromise();
 
       this.ok = true; this.msg = 'Ready!'; this.uploading = false;
     } catch (err: any) {
       this.msg = 'Upload failed: ' + (err?.message || 'unknown error');
       this.uploading = false;
     }
+
+
   }
 }

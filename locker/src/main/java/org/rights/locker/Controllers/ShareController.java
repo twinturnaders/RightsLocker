@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +29,8 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static org.rights.locker.Controllers.EvidencePackageController.*;
+
 @Slf4j
 @RestController
 @RequestMapping("/api")
@@ -37,6 +40,7 @@ public class ShareController {
     private final ShareService shareService;
     private final EvidenceRepo evidenceRepo;
     private final S3Client s3;
+    private final S3Presigner presigner;
     private final ObjectMapper om;
     private final PDFBuilderService pdfService;
 
@@ -121,29 +125,30 @@ public class ShareController {
         final boolean hasRedacted  = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
         boolean useOriginal = wantOriginal && share.isAllowOriginal();
 
-        String bucket = useOriginal ? bucketOriginals : (hasRedacted ? bucketHot : bucketOriginals);
         String key    = useOriginal ? ev.getOriginalKey() : (hasRedacted ? ev.getRedactedKey() : ev.getOriginalKey());
-        String filenameBase = (useOriginal || !hasRedacted) ? "original" : "redacted";
 
         if (key == null || key.isBlank()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Media not available");
-        final String fBucket = bucket;
-        final String fKey = key;
-        final String fBase = filenameBase;
-        // PREFLIGHT: ensure target exists; fallback to original if allowed; otherwise 409
+        String bucket = useOriginal ? bucketOriginals : (hasRedacted ? bucketHot : bucketOriginals);
+        String base   = (useOriginal || !hasRedacted) ? "original" : "redacted";
+
+        String finalBucket = bucket;
+        String finalKey = key;
         try {
-
-            s3.headObject(b -> b.bucket(fBucket).key(fKey)); }
-        catch (S3Exception ex) {
+            s3.headObject(b -> b.bucket(finalBucket).key(finalKey));
+        } catch (S3Exception e) {
             if (!useOriginal && share.isAllowOriginal() && ev.getOriginalKey() != null) {
-                bucket = bucketOriginals; key = ev.getOriginalKey(); filenameBase = "original";
-                try {
-
-                    s3.headObject(b -> b.bucket(fBucket).key(fKey)); }
-                catch (Exception e2) { throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not ready. Try later."); }
+                bucket = bucketOriginals;
+                key = ev.getOriginalKey();
+                base = "original";
+                s3.headObject(b -> b.bucket(finalBucket).key(finalKey)); // throw 409 if missing
             } else {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not ready. Try later.");
             }
         }
+            final String fBucket = bucket, fKey = key, fBase = base;
+
+
+
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -218,10 +223,7 @@ public class ShareController {
     private String presign(String bucket, String key, Duration ttl) {
         if (key == null || key.isBlank()) return null;
         var req = GetObjectRequest.builder().bucket(bucket).key(key).build();
-        return software.amazon.awssdk.services.s3.presigner.S3Presigner
-                .create()
-                .presignGetObject(b -> b.signatureDuration(ttl).getObjectRequest(req))
-                .url().toString();
+        return presigner.presignGetObject(b -> b.signatureDuration(ttl).getObjectRequest(req)).url().toString();
     }
 
     private static long copyToZip(ZipOutputStream zip, ResponseInputStream<?> in, String name, MessageDigest md)
@@ -260,4 +262,5 @@ public class ShareController {
         if (k.endsWith(".png")) return ".png";
         return "";
     }
+
 }

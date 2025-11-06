@@ -8,6 +8,8 @@ import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Enums.Role;
 import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Services.AuthService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +20,7 @@ import java.util.Map;
 
 import org.rights.locker.Security.JwtService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,7 +35,17 @@ public class AuthController {
         this.jwtService = jwtService;
         this.userRepo = userRepo;
     }
-
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@RequestHeader(HttpHeaders.AUTHORIZATION) String auth) {
+        // Expect "Bearer <refreshToken>"; issue a new access
+        if (auth == null || !auth.startsWith("Bearer ")) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        String refresh = auth.substring(7).trim();
+        String sub = jwtService.validateAndGetSubject(refresh); // throws if invalid/expired
+        return ResponseEntity.ok(new TokenResponse(
+                jwtService.issueAccessToken(sub),
+                jwtService.issueRefreshToken(sub)
+        ));
+    }
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req) {
         var user = authService.login(req.email(), req.password());

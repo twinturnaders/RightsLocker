@@ -3,6 +3,7 @@ import { HttpClient, HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { EvidenceApi, Evidence, FinalizeResponse } from '../../../core/evidence.service';
+import {environment} from '../../../../environments/environment';
 
 @Component({
   selector: 'app-convert',
@@ -14,6 +15,7 @@ import { EvidenceApi, Evidence, FinalizeResponse } from '../../../core/evidence.
 export class ConvertComponent {
   private http = inject(HttpClient);
   private api = inject(EvidenceApi);
+  private base = `${environment.apiBase}`;
 
   file?: File; blur = false; uploading = false; progress = 0; ok = false;
   msg = ''; readyUrl = ''; metaPdfUrl = ''; shareToken = ''; key = ''; title = '';
@@ -36,32 +38,34 @@ export class ConvertComponent {
 
     try {
       // 1) presign
-      const presign: any = await this.http.post(
-        '/api/evidence/presign-upload',
-        { filename: this.file.name, contentType: this.file.type || 'application/octet-stream' }
-      ).toPromise();
-      this.key = presign.key;
+      const presign = await this.api.presignUpload(this.file.name, this.file.type || 'application/octet-stream').toPromise();
 
-      // 2) PUT with progress
-      await new Promise<void>((resolve, reject) => {
-        this.http.put(presign.url, this.file, { reportProgress: true, observe: 'events' as any })
-          .subscribe({
-            next: ev => {
-              if ((ev as any).type === HttpEventType.UploadProgress) {
-                const p = ev as any;
-                this.progress = Math.round(100 * (p.loaded / p.total));
-              }
-            },
-            error: reject,
-            complete: () => resolve()
-          });
-      });
+      if(presign != null) {
+        this.key = presign.key;
 
+        // 2) PUT with progress
+        await new Promise<void>((resolve, reject) => {
+          this.http.put(presign.url, this.file, {reportProgress: true, observe: 'events' as any})
+            .subscribe({
+              next: ev => {
+                if ((ev as any).type === HttpEventType.UploadProgress) {
+                  const p = ev as any;
+                  this.progress = Math.round(100 * (p.loaded / p.total));
+                }
+              },
+              error: reject,
+              complete: () => resolve()
+            });
+        });
+      }
       // 3) finalize (server computes hash, enqueues jobs)
 
       const fin = await this.api.finalize({
-        key: this.key, title: this.title, description: this.blur ? 'Public convert (blur=on)' : 'Public convert',
-        capturedAtIso: new Date().toISOString()
+        key: this.key,
+        title: this.title,
+        description: this.blur ? 'Public convert (blur=on)' : 'Public convert',
+        capturedAtIso: new Date().toISOString(),
+        redactMode: this.blur ? 'BLUR' : 'NONE'     // <-- send it
       }).toPromise();
 
       this.msg = 'Uploaded! Processing…';
@@ -88,8 +92,8 @@ export class ConvertComponent {
         }
 
         // 5) ready: download via public package + metadata pdf
-        this.readyUrl = `/api/share/${this.shareToken}/package?type=redacted&includeThumb=true`;
-        this.metaPdfUrl = `/api/share/${this.shareToken}/metadata.pdf`;
+        this.readyUrl = `/${this.base}/share/${this.shareToken}/package?type=redacted&includeThumb=true`;
+        this.metaPdfUrl = `/${this.base}/share/${this.shareToken}/metadata.pdf`;
       } else {
         // Authed user: you could also poll your /api/evidence/{id} if you want
         // but they can always download individually from the detail pane.

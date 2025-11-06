@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { DatePipe, NgIf } from '@angular/common';
 import { Evidence, EvidenceApi } from '../../../core/evidence.service';
+import {environment} from '../../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -10,7 +11,7 @@ import { Evidence, EvidenceApi } from '../../../core/evidence.service';
 })
 export class EvidenceDetailComponent implements OnChanges {
   private api = inject(EvidenceApi);
-
+  private base = `${environment.apiBase}`;
   @Input() id?: string;
   e?: Evidence;
   loading = false;
@@ -38,7 +39,7 @@ export class EvidenceDetailComponent implements OnChanges {
   }
 
   thumbUrl(): string | undefined {
-    return this.e?.id ? `/api/evidence/thumb?id=${this.e.id}` : undefined;
+    return this.e?.id ? `/${this.base}/evidence/thumb?id=${this.e.id}` : undefined;
   }
 
   download(type: 'redacted'|'thumbnail'|'original' = 'redacted') {

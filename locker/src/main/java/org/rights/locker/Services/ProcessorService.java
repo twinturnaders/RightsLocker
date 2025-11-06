@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.RabbitConfig;
 import org.rights.locker.Entities.ProcessingJob;
+import org.rights.locker.Enums.CustodyEventType;
 import org.rights.locker.Enums.EvidenceStatus;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.bytedeco.librealsense.global.RealSense.none;
+import static org.rights.locker.Enums.JobType.REDACT;
 
 @Service
 @RequiredArgsConstructor
@@ -42,16 +44,12 @@ public class ProcessorService {
 
 
     public void publish(ProcessingJob job) {
-
-        job.setAttempts((job.getAttempts() == none) ? 1 : job.getAttempts() + 1);
+        job.setAttempts(job.getAttempts() + 1);
         job.setStatus(JobStatus.QUEUED);
-
+        job.setUpdatedAt(Instant.now());
         jobs.save(job);
-
-        var msg = new JobMessage(job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts());
-        log.info("Publishing job {} type={} ev={} attempt={}", job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts());
-        // default exchange (""), routingKey = queue name
-        rabbit.convertAndSend("", RabbitConfig.JOBS_QUEUE, msg);
+        rabbit.convertAndSend("", RabbitConfig.JOBS_QUEUE,
+                new JobMessage(job.getId(), job.getType(), job.getEvidence().getId(), job.getAttempts()));
     }
 
     /**
@@ -85,12 +83,11 @@ public class ProcessorService {
             }
             case REDACT -> {
                 ev.setRedactedKey(outputKey);
-                if (outputSizeB != null) ev.setRedactedSizeB(outputSizeB);
-                if (outputSha256 != null) ev.setRedactedKey(outputSha256);
-                ev.setRedactedKey(outputKey);
-                ev.setStatus(EvidenceStatus.REDACTED); // or READY if that’s your meaning
+                if (outputSizeB != null) ev.setRedactedSize(outputSizeB);  // field is redactedSize (Long)
+                // if you store sha: add a field (redactedSha256) and set it properly
+                ev.setStatus(EvidenceStatus.REDACTED);
                 evidenceRepo.saveAndFlush(ev);
-                custody.record(ev, null, org.rights.locker.Enums.CustodyEventType.REDACTED,
+                custody.record(ev, null, CustodyEventType.REDACTED,
                         Map.of("key", outputKey, "sha256", safe(outputSha256)));
             }
             default -> log.warn("completeSuccess: unhandled job type {}", job.getType());
@@ -112,6 +109,8 @@ public class ProcessorService {
     }
     public void complete(UUID jobId, JobStatus status, String outputKey, String error) {
         if (status == null) throw new IllegalArgumentException("status is required");
+        var job = jobs.findById(jobId).orElseThrow();
+        var ev = job.getEvidence();
         switch (status) {
             case RUNNING -> {
                 // allow controller to mark as running if you expose that
@@ -125,8 +124,10 @@ public class ProcessorService {
                 completeFailure(jobId, error != null ? error : "unknown error");
             }
 
+
             default -> throw new IllegalArgumentException("Unhandled status: " + status);
         }
+
     }
     private static String safe(String s){ return s==null ? "" : s; }
 }

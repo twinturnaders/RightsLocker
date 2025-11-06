@@ -54,6 +54,7 @@ public class EvidenceController {
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
+
     /* auth-only list */
     @GetMapping
     public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
@@ -95,8 +96,9 @@ public class EvidenceController {
     /* finalize (public) */
     public record FinalizeReq(
             String key, String title, String description,
-            String capturedAtIso, Double lat, Double lon, Double accuracy
-    ) {}
+            String capturedAtIso, Double lat, Double lon, Double accuracy,
+            String redactMode // NEW: "BLUR" | "NONE" (nullable ok)
+    ){}
 
     @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
@@ -112,6 +114,8 @@ public class EvidenceController {
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
+
+
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
                 .title(req.title())
@@ -123,6 +127,9 @@ public class EvidenceController {
                 .status(EvidenceStatus.RECEIVED)
                 .legalHold(false)
                 .build();
+        String redactMode = (req.redactMode() == null || req.redactMode().isBlank())
+                ? "BLUR" : req.redactMode().toUpperCase();
+
 
         if (currentUser != null) {
             ev.setOwner(currentUser);
@@ -144,16 +151,22 @@ public class EvidenceController {
         processor.publish(thumb);
 
         var redact = jobRepo.save(ProcessingJob.builder()
-                .evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0).build());
+                .evidence(ev)
+                .type(JobType.REDACT)
+                .status(JobStatus.QUEUED)
+                .attempts(0)
+                .payloadJson(Map.of("mode", redactMode)) // <-- carry it to the worker
+                .build());
         processor.publish(redact);
 
         return new FinalizeResponse(ev, shareToken);
     }
 
+
     /* presigned GET per type (auth only) */
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
-                                       @RequestParam(defaultValue = "redacted") String type,
+                                       @RequestParam(defaultValue = "original") String type,
                                        @AuthenticationPrincipal AppUser current) {
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         var ev = evidenceRepo.findByIdAndOwner(id, current)
@@ -166,9 +179,9 @@ public class EvidenceController {
                 bucket = (key == null) ? bucketOriginals : bucketHot;
                 if (key == null) key = ev.getOriginalKey();
             }
-            case "original" -> { bucket = bucketOriginals; key = ev.getOriginalKey(); }
-            default /* redacted */ -> {
-                key = ev.getRedactedKey();
+            case "redacted" -> { bucket = bucketHot; key = ev.getRedactedKey(); }
+            default  -> {
+                key = ev.getOriginalKey();
                 bucket = (key == null) ? bucketOriginals : bucketHot;
                 if (key == null) key = ev.getOriginalKey();
             }
@@ -201,5 +214,19 @@ public class EvidenceController {
         if (iso == null || iso.isBlank()) return null;
         try { return OffsetDateTime.parse(iso).toInstant(); }
         catch (DateTimeParseException ex) { return Instant.parse(iso); }
+    }
+
+    public record RedactReq(String mode) {}
+    @PostMapping("/{id}/redact")
+    public void requeueRedact(@PathVariable UUID id, @RequestBody RedactReq req,
+                              @AuthenticationPrincipal AppUser current) {
+        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var job = jobRepo.save(ProcessingJob.builder()
+                .evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0)
+                .payloadJson(Map.of("mode", (req.mode()==null?"BLUR":req.mode().toUpperCase())))
+                .build());
+        processor.publish(job);
     }
 }

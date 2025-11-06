@@ -165,7 +165,7 @@ public class EvidencePackageController {
     }
 
     /* helpers */
-    private static long copyToZip(ZipOutputStream zip, InputStream in, String name, MessageDigest md) throws IOException {
+    static long copyToZip(ZipOutputStream zip, InputStream in, String name, MessageDigest md) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         byte[] buf = new byte[BUF];
         int r; long size = 0;
@@ -178,19 +178,19 @@ public class EvidencePackageController {
         return size;
     }
 
-    private static void putText(ZipOutputStream zip, String name, String text) throws IOException {
+    static void putText(ZipOutputStream zip, String name, String text) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         zip.write(text.getBytes());
         zip.closeEntry();
     }
 
-    private static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
+    static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         zip.write(bytes);
         zip.closeEntry();
     }
 
-    private static String guessExt(String key) {
+    static String guessExt(String key) {
         String k = key == null ? "" : key.toLowerCase();
         if (k.endsWith(".mp4")) return ".mp4";
         if (k.endsWith(".mov")) return ".mov";

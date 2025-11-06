@@ -48,11 +48,13 @@ public class JobListener {
         log.info("Got job {} type={} attempt={}", msg.jobId(), msg.type(), msg.attempt());
         var job = processor.markStarted(msg.jobId());
         try {
-            // TODO: do real work based on msg.type (THUMBNAIL/REDACT)
-            // simulate
-            Thread.sleep(1000);
+            switch (msg.type()) {
+                case THUMBNAIL -> runThumbnail(job);
+                case REDACT    -> runRedact(job); // will read job payload
+                default        -> Thread.sleep(250);
+            }
 
-            // Example outputs
+
             String outputKey = switch (msg.type()) {
                 case THUMBNAIL -> "thumbnails/%s.jpg".formatted(msg.evidenceId());
                 case REDACT    -> "redacted/%s.mp4".formatted(msg.evidenceId());
@@ -107,20 +109,17 @@ public class JobListener {
 
     /* ----------------- REDACT (placeholder copy) ----------------- */
     private void runRedact(ProcessingJob job) throws Exception {
-        Evidence ev = evidenceRepo.findById(job.getEvidence().getId()).orElseThrow();
+        var ev = evidenceRepo.findById(job.getEvidence().getId()).orElseThrow();
+        String mode = job.getPayloadJson() != null
+                ? String.valueOf(job.getPayloadJson().getOrDefault("mode","BLUR")).toUpperCase()
+                : "BLUR";
 
-        // For now, just copy original to hot as a placeholder redacted file.
-        // Later, replace with real redaction and upload result to this key.
+        // TODO: implement real blur; placeholder: copy original → hot
         String key = "redacted/" + ev.getId() + ".mp4";
-        s3.copyObject(CopyObjectRequest.builder()
-                .sourceBucket(bucketOriginals)
-                .sourceKey(ev.getOriginalKey())
-                .destinationBucket(bucketHot)
-                .destinationKey(key)
-                .build());
+        s3.copyObject(cb -> cb
+                .sourceBucket(bucketOriginals).sourceKey(ev.getOriginalKey())
+                .destinationBucket(bucketHot).destinationKey(key));
 
-        ev.setRedactedKey(key);
-        // If you distinguish states: ev.setStatus(EvidenceStatus.REDACTED);
-        evidenceRepo.save(ev);
+        processor.completeSuccess(job.getId(), key, null, null);
     }
 }

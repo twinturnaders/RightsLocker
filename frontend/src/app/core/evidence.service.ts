@@ -63,6 +63,7 @@ export class EvidenceApi {
   finalize(payload: {
     key: string; title?: string; description?: string;
     capturedAtIso?: string; lat?: number; lon?: number; accuracy?: number;
+    redactMode?: 'BLUR' | 'NONE';                // NEW
   }) {
     return this.http.post<FinalizeResponse>(`${this.base}/finalize`, payload);
   }
