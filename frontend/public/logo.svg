@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">RightsLocker Logo</title>
+  <desc id="desc">Padlock with camera lens and the wordmark RIGHTSLocker</desc>
+
+  <!-- defs -->
+  <defs>
+    <linearGradient id="gShackle" x1="0" x2="1">
+      <stop offset="0" stop-color="#9aa3ad"/>
+      <stop offset="0.5" stop-color="#e5ecf2"/>
+      <stop offset="1" stop-color="#8b96a1"/>
+    </linearGradient>
+    <linearGradient id="gBody" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f3c3ad"/>
+      <stop offset="1" stop-color="#c5856b"/>
+    </linearGradient>
+    <radialGradient id="gLens" cx="50%" cy="50%" r="60%">
+      <stop offset="0" stop-color="#7fd3ff"/>
+      <stop offset="0.45" stop-color="#2e7aa3"/>
+      <stop offset="0.8" stop-color="#0b2e40"/>
+      <stop offset="1" stop-color="#01131c"/>
+    </radialGradient>
+  </defs>
+
+  <!-- LOGO MARK -->
+  <!-- shackle -->
+  <g transform="translate(40,16)">
+    <path d="M110,12c-35,0-62,27-62,62v23h20v-23c0-23,19-42,42-42s42,19,42,42v23h20v-23c0-35-27-62-62-62Z"
+          fill="url(#gShackle)"/>
+    <!-- body -->
+    <rect x="28" y="97" rx="14" ry="14" width="164" height="100" fill="url(#gBody)" stroke="#a06a55" stroke-width="1.5"/>
+    <!-- lens bezel -->
+    <circle cx="110" cy="147" r="42" fill="#0d1116" stroke="#2a2f36" stroke-width="2"/>
+    <circle cx="110" cy="147" r="34" fill="url(#gLens)"/>
+    <circle cx="100" cy="137" r="6.5" fill="#ffffff" opacity="0.85"/>
+  </g>
+
+  <!-- WORDMARK -->
+  <g font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system, Arial" transform="translate(240,40)">
+    <!-- RIGHTS -->
+    <text x="0" y="95" font-size="76" font-weight="800" letter-spacing="1.5" fill="#1e2525">RIGHTS</text>
+    <!-- Locker -->
+    <text x="0" y="155" font-size="64" font-weight="600" fill="#b06c58">Locker</text>
+  </g>
+</svg>

@@ -250,6 +250,9 @@
 							<artifactId>spring-boot-configuration-processor</artifactId>
 						</path>
 					</annotationProcessorPaths>
+					<source>13</source>
+					<target>13</target>
+					<compilerArgs>--enable-preview</compilerArgs>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -263,6 +266,11 @@
 						<artifactId>spring-boot-dependencies</artifactId>
 						<version>3.5.6</version>
 
+					</dependency>
+					<dependency>
+						<groupId>org.apache.pdfbox</groupId>
+						<artifactId>pdfbox</artifactId>
+						<version>2.0.30</version>
 					</dependency>
 				</dependencies>
 			</plugin>

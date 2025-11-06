@@ -2,6 +2,6 @@
 .brand {
   font-family: Calibri, sans-serif; font-weight: 700;
 }
-.logo { display: grid; place-items: center; color: var(--rosy-brown); }
-.wordmark { font-size: 2rem; line-height: 1; color: var(--reseda-green)}
-.wordmark .accent { color: var(--rosy-brown); }
+.logo { display: grid; place-items: center; color: #a7725d; }
+.wordmark { font-size: 2rem; line-height: 1; color: #2b302b;}
+.wordmark .accent { color: #a7725d; }

@@ -2,8 +2,9 @@
   <aside class="sidebar">
 
     <nav>
-      <logo width="280px" variant="dark" [showWordmark]="true"></logo>
+
       <nav>
+        <span><img src="/logo.svg"></span>
         <a routerLink="/upload" routerLinkActive="active">Convert</a>
         <a *ngIf="auth.isAuthed$ | async" routerLink="/evidence" routerLinkActive="active">Evidence</a>
       </nav>

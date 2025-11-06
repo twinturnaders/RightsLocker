@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ShareLink;
 import org.rights.locker.Repos.EvidenceRepo;
+import org.rights.locker.Repos.ShareLinkRepo;
 import org.rights.locker.Services.PDFBuilderService;
 import org.rights.locker.Services.ShareService;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +44,7 @@ public class ShareController {
     private final S3Presigner presigner;
     private final ObjectMapper om;
     private final PDFBuilderService pdfService;
+    private final ShareLinkRepo shareLinkRepo;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -112,105 +114,64 @@ public class ShareController {
     }
 
     /* public: packaged zip (media + metadata.json + metadata.pdf + integrity.txt) with S3 preflight */
-    @GetMapping("/share/{token}/package")
+    @GetMapping("/api/share/{token}/package")
     public ResponseEntity<StreamingResponseBody> downloadSharedPackage(
             @PathVariable String token,
-            @RequestParam(defaultValue = "redacted") String type) {
+            @RequestParam(defaultValue = "redacted") String type
+    ) {
+        var link = shareLinkRepo.findByToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var ev = evidenceRepo.findById(link.getEvidenceId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        var share = shareService.requireActive(token);
-        var ev = evidenceRepo.findById(share.getEvidenceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evidence not found"));
-
-        final boolean wantOriginal = "original".equalsIgnoreCase(type);
-        final boolean hasRedacted  = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
-        boolean useOriginal = wantOriginal && share.isAllowOriginal();
-
-        String key    = useOriginal ? ev.getOriginalKey() : (hasRedacted ? ev.getRedactedKey() : ev.getOriginalKey());
-
-        if (key == null || key.isBlank()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Media not available");
-        String bucket = useOriginal ? bucketOriginals : (hasRedacted ? bucketHot : bucketOriginals);
-        String base   = (useOriginal || !hasRedacted) ? "original" : "redacted";
-
-        String finalBucket = bucket;
-        String finalKey = key;
-        try {
-            s3.headObject(b -> b.bucket(finalBucket).key(finalKey));
-        } catch (S3Exception e) {
-            if (!useOriginal && share.isAllowOriginal() && ev.getOriginalKey() != null) {
-                bucket = bucketOriginals;
-                key = ev.getOriginalKey();
-                base = "original";
-                s3.headObject(b -> b.bucket(finalBucket).key(finalKey)); // throw 409 if missing
-            } else {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Media not ready. Try later.");
-            }
-        }
-            final String fBucket = bucket, fKey = key, fBase = base;
-
-
-
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename("evidence-" + ev.getId() + ".zip").build());
+        // Decide which object we’ll include
+        String chosenKey = switch (type.toLowerCase()) {
+            case "redacted" -> (ev.getRedactedKey() != null ? ev.getRedactedKey() : ev.getOriginalKey());
+            case "original" -> ev.getOriginalKey();
+            default -> ev.getRedactedKey();
+        };
+        if (chosenKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No asset available to package");
 
         StreamingResponseBody body = out -> {
-            try (var zip = new ZipOutputStream(out)) {
-                // 1) media
-                try (ResponseInputStream<GetObjectResponse> in = s3.getObject(b -> b.bucket(fBucket).key(fKey))) {
-                    var md = MessageDigest.getInstance("SHA-256");
-                    long size = copyToZip(zip, in, fBase + guessExt(fKey), md);
-                    String sha = HexFormat.of().formatHex(md.digest());
+            try (var zos = new java.util.zip.ZipOutputStream(out)) {
 
-                    // 2) optional thumb (best-effort)
-                    String thumbSha = null;
-                    if (ev.getThumbnailKey() != null && !ev.getThumbnailKey().isBlank()) {
-                        try (ResponseInputStream<GetObjectResponse> th =
-                                     s3.getObject(b -> b.bucket(bucketHot).key(ev.getThumbnailKey()))) {
-                            var tmd = MessageDigest.getInstance("SHA-256");
-                            copyToZip(zip, th, "thumb.jpg", tmd);
-                            thumbSha = HexFormat.of().formatHex(tmd.digest());
-                        } catch (Exception ignore) {}
-                    }
+                // 1) manifest.json (no nulls)
+                var manifest = mapNonNull(
+                        "evidenceId", ev.getId().toString(),
+                        "title", ev.getTitle(),
+                        "description", ev.getDescription(),
+                        "capturedAt", ev.getCapturedAt(),
+                        "status", ev.getStatus() != null ? ev.getStatus().name() : null,
+                        "includedObjectKey", chosenKey
+                );
+                var manifestBytes = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(manifest);
+                zos.putNextEntry(new java.util.zip.ZipEntry("manifest.json"));
+                zos.write(manifestBytes);
+                zos.closeEntry();
 
-                    // 3) metadata.json
-                    var meta = Map.of(
-                            "evidenceId", ev.getId().toString(),
-                            "title", ev.getTitle(),
-                            "capturedAt", ev.getCapturedAt(),
-                            "deliveredKind", fBase,
-                            "deliveredSha256", sha,
-                            "deliveredSizeBytes", size
-                    );
-                    putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(meta));
+                // 2) media (stream from S3)
+                zos.putNextEntry(new java.util.zip.ZipEntry(filenameForKey(chosenKey)));
+                s3.getObject(b -> b.bucket(bucketHot).key(chosenKey)).transferTo(zos);
+                zos.closeEntry();
 
-                    // 4) metadata.pdf
-                    byte[] pdf = pdfService.buildMetadataPdf(Map.of(
-                            "evidenceId", ev.getId().toString(),
-                            "title", ev.getTitle(),
-                            "capturedAt", ev.getCapturedAt(),
-                            "generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
-                            "access", Map.of("viaShareToken", share.getToken(), "allowOriginal", share.isAllowOriginal())
-                    ));
-                    putBytes(zip, "metadata.pdf", pdf);
+                // 3) metadata.pdf (try to generate; skip on failure)
+                byte[] pdfBytes = null;
+                try {
+                    pdfBytes = generateMetadataPdf(ev, link);
+                } catch (Exception ignore) { /* skip pdf gracefully */ }
 
-                    // 5) integrity.txt
-                    var sb = new StringBuilder();
-                    sb.append("RightsLocker Public Package\n");
-                    sb.append("Evidence ID: ").append(ev.getId()).append("\n");
-                    sb.append("Delivered: ").append(fBase).append("\n");
-                    sb.append("SHA-256: ").append(sha).append("\n");
-                    if (thumbSha != null) sb.append("Thumbnail SHA-256: ").append(thumbSha).append("\n");
-                    putText(zip, "integrity.txt", sb.toString());
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
+                if (pdfBytes != null && pdfBytes.length > 0) {
+                    zos.putNextEntry(new java.util.zip.ZipEntry("metadata.pdf"));
+                    zos.write(pdfBytes);
+                    zos.closeEntry();
                 }
-                zip.finish();
+
+                zos.finish();
             }
         };
 
-        return ResponseEntity.ok().headers(headers).body(body);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"evidence-" + ev.getId() + ".zip\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                .body(body);
     }
 
     /* owner revokes share */
@@ -220,6 +181,53 @@ public class ShareController {
     }
 
     /* helpers */
+    private byte[] generateMetadataPdf(Evidence ev, ShareLink link) {
+        try (var doc = new org.apache.pdfbox.pdmodel.PDDocument()) {
+            var page = new org.apache.pdfbox.pdmodel.PDPage();
+            doc.addPage(page);
+
+            var font = org.apache.pdfbox.pdmodel.font.PDType1Font.HELVETICA;
+            try (var content = new org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page)) {
+                content.beginText();
+                content.setFont(font, 12);
+                content.newLineAtOffset(50, 750);
+                content.showText("Evidence Metadata");
+                content.newLineAtOffset(0, -20);
+                content.showText("ID: " + ev.getId());
+                content.newLineAtOffset(0, -20);
+                content.showText("Title: " + safe(ev.getTitle()));
+                content.newLineAtOffset(0, -20);
+                content.showText("Captured At: " + String.valueOf(ev.getCapturedAt()));
+                content.newLineAtOffset(0, -20);
+                content.showText("Share Token: " + link.getToken());
+                content.endText();
+            }
+
+            try (var bos = new java.io.ByteArrayOutputStream()) {
+                doc.save(bos);
+                return bos.toByteArray();
+            }
+        } catch (Exception e) {
+            log.warn("PDF generation failed for evidence {}", ev.getId(), e);
+            return new byte[0];
+        }
+    }
+
+    private static String safe(String s) { return s == null ? "" : s; }
+    private static String filenameForKey(String key) {
+        // If your keys are "redacted/<id>.mp4", keep the leaf name
+        int i = key.lastIndexOf('/');
+        return i >= 0 ? key.substring(i + 1) : key;
+    }
+    static Map<String,Object> mapNonNull(Object... kv) {
+        Map<String,Object> m = new java.util.LinkedHashMap<>();
+        for (int i = 0; i + 1 < kv.length; i += 2) {
+            String k = (String) kv[i];
+            Object v = kv[i + 1];
+            if (k != null && v != null) m.put(k, v);
+        }
+        return java.util.Collections.unmodifiableMap(m);
+    }
     private String presign(String bucket, String key, Duration ttl) {
         if (key == null || key.isBlank()) return null;
         var req = GetObjectRequest.builder().bucket(bucket).key(key).build();
