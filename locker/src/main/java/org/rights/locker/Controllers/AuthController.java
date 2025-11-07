@@ -1,6 +1,7 @@
 package org.rights.locker.Controllers;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.rights.locker.DTOs.LoginRequest;
 import org.rights.locker.DTOs.RegisterRequest;
 import org.rights.locker.DTOs.TokenResponse;
@@ -26,52 +27,43 @@ import java.util.UUID;
 import org.rights.locker.Security.JwtService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;  // your user/password checker
-    private final JwtService jwtService;    // encapsulates props + JWT logic
+    private final AuthService authService;
+    private final JwtService jwtService;
     private final AppUserRepo userRepo;
-    UserPrincipal userPrincipal;
 
-    public AuthController(AuthService authService, JwtService jwtService, AppUserRepo userRepo, UserSessionRepo userSessionRepo) {
-        this.authService = authService;
-        this.jwtService = jwtService;
-        this.userRepo = userRepo;
-
-
-    }
-    @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(@RequestHeader(HttpHeaders.AUTHORIZATION) String auth) {
-        // Expect "Bearer <refreshToken>"; issue a new access
-        if (auth == null || !auth.startsWith("Bearer ")) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        String refresh = auth.substring(7).trim();
-        String sub = jwtService.validateAndGetSubject(refresh); // throws if invalid/expired
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req) {
+        AppUser user = authService.loginAndReturnUser(req.email(), req.password());
+        String sub = user.getId().toString();
         return ResponseEntity.ok(new TokenResponse(
                 jwtService.issueAccessToken(sub),
                 jwtService.issueRefreshToken(sub)
         ));
     }
-    @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req, @AuthenticationPrincipal AppUser up ) {
-        var user = authService.login(req.email(), req.password());
-        var id = UUID.fromString(authService.getIdFromEmail(req.email()));
-         up = userRepo.findById(id).orElseThrow();
-
-        UserPrincipal.create(up);
-           var access = jwtService.issueAccessToken(authService.getIdFromEmail(req.email()));
-        var refresh = jwtService.issueRefreshToken(authService.getIdFromEmail(req.email()));
-        return ResponseEntity.ok(new TokenResponse(access, refresh));
-    }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req, @AuthenticationPrincipal AppUser u) {
-        u = authService.register(req.email(), req.password(), req.displayName());
-        userRepo.save(u);
-        var access = jwtService.issueAccessToken(authService.getIdFromEmail(req.email()));
-        var refresh = jwtService.issueRefreshToken(authService.getIdFromEmail(req.email()));
-        return ResponseEntity.ok(new TokenResponse(access, refresh));
+    public ResponseEntity<TokenResponse> register(@Valid @RequestBody RegisterRequest req) {
+        AppUser u = authService.register(req.email(), req.password(), req.displayName());
+        String sub = u.getId().toString();
+        return ResponseEntity.ok(new TokenResponse(
+                jwtService.issueAccessToken(sub),
+                jwtService.issueRefreshToken(sub)
+        ));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@RequestHeader(HttpHeaders.AUTHORIZATION) String auth) {
+        if (auth == null || !auth.startsWith("Bearer ")) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        String refresh = auth.substring(7).trim();
+        String sub = jwtService.validateAndGetSubject(refresh);
+        return ResponseEntity.ok(new TokenResponse(
+                jwtService.issueAccessToken(sub),
+                jwtService.issueRefreshToken(sub)
+        ));
     }
 }

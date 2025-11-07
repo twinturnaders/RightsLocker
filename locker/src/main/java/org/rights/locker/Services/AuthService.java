@@ -18,39 +18,21 @@ import java.util.Optional;
 public class AuthService {
     private final AppUserRepo users;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    private final AppUserRepo appUserRepo;
-
 
     public AppUser register(String email, String password, String displayName) {
         var user = AppUser.builder()
                 .email(email)
                 .passwordHash(encoder.encode(password))
                 .displayName(displayName)
-                .role(Role.valueOf("USER"))
+                .role(Role.USER)
                 .build();
         return users.save(user);
     }
 
-
-
-    public TokenResponse login(String email, String password) {
-//        var u = users.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
-//
-//        if (!encoder.matches(password, u.getPasswordHash())) throw new IllegalArgumentException("Invalid credentials");
-//        String fakeAccess = "dev-access-token";
-//        String fakeRefresh = "dev-refresh-token";
-//
-//        return new TokenResponse(fakeAccess, fakeRefresh);
+    public AppUser loginAndReturnUser(String email, String password) {
         var user = users.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        if (!encoder.matches(password, user.getPasswordHash())) throw new IllegalArgumentException("Invalid credentials");
-        var access = user.getId().toString();
-        var refresh = user.getId().toString();
-        var userId = user.getId().toString();
-        return new TokenResponse(access, refresh, userId);
-    }
-
- public String getIdFromEmail(String email) {
-    AppUser user = users.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
-    return user.getId().toString();
+        if (!encoder.matches(password, user.getPasswordHash()))
+            throw new IllegalArgumentException("Invalid credentials");
+        return user;
     }
 }

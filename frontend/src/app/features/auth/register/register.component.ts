@@ -38,7 +38,7 @@ export class RegisterComponent{
     if(this.form.invalid) return; this.loading=true; this.error='';
     const { email, password, displayName } = this.form.value as any;
     this.auth.register(email,password,displayName).subscribe({
-      next:()=>this.router.navigateByUrl(`${this.base}/evidence`),
+      next:()=>this.router.navigateByUrl(`/evidence`),
       error:e=>{ this.error=e?.error?.message||'Registration failed'; this.loading=false; }
     });
   }

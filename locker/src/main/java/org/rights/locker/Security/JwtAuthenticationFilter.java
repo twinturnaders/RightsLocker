@@ -29,9 +29,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserRepo userRepo;
 
+    // Only truly public paths here
     private final List<String> skip = List.of(
-            "/api/auth/login",
-            "/api/auth/refresh",
+            "/api/auth/**",
             "/api/evidence/presign-upload",
             "/api/evidence/finalize",
             "/api/share/**",
@@ -55,26 +55,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (auth != null && auth.startsWith("Bearer ")) {
-            String token = auth.substring(7).trim();
-            try {
-                String sub = jwtService.validateAndGetSubject(token); // validates signature & exp
-                UUID userId = UUID.fromString(sub);
-                AppUser user = userRepo.findById(userId).orElse(null);
-                if (user != null) {
-                    var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
-                    var principal = new UserPrincipal(user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole());
-                    var authToken = new UsernamePasswordAuthenticationToken(principal, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            } catch (Exception ignored) {
-                // invalid/expired/unknown user → leave context empty; protected routes will 401/403
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
+            if (auth != null && auth.startsWith("Bearer ")) {
+                String token = auth.substring(7).trim();
+                try {
+                    String sub = jwtService.validateAndGetSubject(token); // userId (UUID) as subject
+                    var userOpt = userRepo.findById(UUID.fromString(sub));
+                    if (userOpt.isPresent()) {
+                        AppUser user = userOpt.get();
+                        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+                        // PRINCIPAL = AppUser so @AuthenticationPrincipal AppUser works
+                        var authToken = new UsernamePasswordAuthenticationToken(user, null, authorities);
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                } catch (Exception ignored) { /* invalid token -> anonymous */ }
             }
         }
 

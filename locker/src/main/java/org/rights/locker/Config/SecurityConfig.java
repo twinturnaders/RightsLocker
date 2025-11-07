@@ -17,11 +17,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // Create the filter as a bean to avoid circulars and make it visible to the chain
     @Bean
     JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
         return new JwtAuthenticationFilter(jwtService, userRepo);
@@ -34,20 +34,19 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // auth
+                        // auth (public)
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
 
-                        // anonymous upload/convert
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize", "/api/evidence/**").permitAll()
+                        // anonymous upload only these 2
+                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
 
-                        // share capability links (public)
+                        // public share links
                         .requestMatchers("/api/share/**").permitAll()
 
                         // health/docs/static
                         .requestMatchers("/actuator/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // everything else requires auth
+                        // everything else requires JWT
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -55,15 +54,14 @@ public class SecurityConfig {
                 .build();
     }
 
-    // wide-open CORS for now; tighten as you like
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("*")); // or your exact frontend origin(s)
+        var cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(List.of("*"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(false);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
         return source;
     }

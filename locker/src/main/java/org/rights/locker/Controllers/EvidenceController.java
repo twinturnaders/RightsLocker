@@ -60,12 +60,11 @@ public class EvidenceController {
     @GetMapping
     public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
                                @RequestParam(defaultValue="20") int size,
-                               @CurrentUser AppUser current) {
+                               @AuthenticationPrincipal AppUser current) {
         if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         return evidenceRepo.findAllByOwner(current, PageRequest.of(page, size));
     }
 
-    /* auth-only get */
     @GetMapping("/{id}")
     public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
