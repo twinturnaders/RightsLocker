@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
 
                         // anonymous upload/convert
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
+                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize", "/api/evidence/**").permitAll()
 
                         // share capability links (public)
                         .requestMatchers("/api/share/**").permitAll()
