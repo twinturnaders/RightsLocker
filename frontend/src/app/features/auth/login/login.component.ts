@@ -1,13 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import {Router, RouterLink} from '@angular/router';
 import { AuthService} from '../../../core/auth.service';
 import { NgIf } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'rl-login',
-  imports: [ReactiveFormsModule, NgIf],
+  imports: [ReactiveFormsModule, NgIf, RouterLink],
   templateUrl: 'login.component.html',
   styleUrls: ['login.component.css']
 })

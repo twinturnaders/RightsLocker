@@ -17,7 +17,8 @@ function match(field:string, confirm:string){
   standalone: true,
   selector: 'rl-register',
   imports: [ReactiveFormsModule, NgIf, RouterLink],
-  templateUrl: 'register.component.html'
+  templateUrl: 'register.component.html',
+  styleUrls: ['register.component.css'],
 })
 export class RegisterComponent{
   fb=inject(FormBuilder); auth=inject(AuthService); router=inject(Router);
