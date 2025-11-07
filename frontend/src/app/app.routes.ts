@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path:'legal', loadComponent:()=>import('./features/legal/legal.component').then(m=>m.LegalComponent) },
   { path: 'convert', loadComponent: () => import('./features/evidence/convert/convert.component').then(m => m.ConvertComponent) },
   { path: 'evidence', loadComponent: () => import('./features/evidence/evidence-page/evidence-page.component').then(m => m.EvidencePageComponent) },
+  { path: 'login', loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) },
 
   { path:'register', loadComponent:()=>import('./features/auth/register/register.component').then(m=>m.RegisterComponent) },
   { path: 'evidence', component: EvidencePageComponent },

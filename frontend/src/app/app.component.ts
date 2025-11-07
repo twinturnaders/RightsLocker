@@ -15,4 +15,5 @@ import {LogoComponent} from './core/logo/logo.component';
 export class AppComponent {
 
   protected auth = inject(AuthService);
+  
 }
