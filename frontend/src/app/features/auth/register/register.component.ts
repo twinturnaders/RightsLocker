@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, Validati
 import { Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService} from '../../../core/auth.service';
+import {environment} from '../../../../environments/environment';
 
 
 function match(field:string, confirm:string){
@@ -29,6 +30,7 @@ export class RegisterComponent{
     password:['',[Validators.required,Validators.minLength(8)]],
     confirm:['',[Validators.required]]
   }, { validators: match('password','confirm')});
+  private base = `${environment.apiBase}`;
   get email(){return this.form.get('email')!}
 
 
@@ -36,7 +38,7 @@ export class RegisterComponent{
     if(this.form.invalid) return; this.loading=true; this.error='';
     const { email, password, displayName } = this.form.value as any;
     this.auth.register(email,password,displayName).subscribe({
-      next:()=>this.router.navigateByUrl('/evidence'),
+      next:()=>this.router.navigateByUrl(`${this.base}/evidence`),
       error:e=>{ this.error=e?.error?.message||'Registration failed'; this.loading=false; }
     });
   }
