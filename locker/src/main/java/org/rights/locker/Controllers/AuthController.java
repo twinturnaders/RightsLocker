@@ -15,6 +15,7 @@ import org.rights.locker.Services.AuthService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -54,10 +55,10 @@ public class AuthController {
         ));
     }
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody @CurrentUser LoginRequest req) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req, @AuthenticationPrincipal AppUser up ) {
         var user = authService.login(req.email(), req.password());
         var id = UUID.fromString(authService.getIdFromEmail(req.email()));
-        var up = userRepo.findById(id).orElseThrow();
+         up = userRepo.findById(id).orElseThrow();
 
         UserPrincipal.create(up);
            var access = jwtService.issueAccessToken(authService.getIdFromEmail(req.email()));
@@ -66,8 +67,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody @CurrentUser RegisterRequest req) {
-        var u = authService.register(req.email(), req.password(), req.displayName());
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req, @AuthenticationPrincipal AppUser u) {
+        u = authService.register(req.email(), req.password(), req.displayName());
         userRepo.save(u);
         var access = jwtService.issueAccessToken(authService.getIdFromEmail(req.email()));
         var refresh = jwtService.issueRefreshToken(authService.getIdFromEmail(req.email()));

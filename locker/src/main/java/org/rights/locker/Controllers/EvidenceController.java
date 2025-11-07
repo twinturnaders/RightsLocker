@@ -67,9 +67,9 @@ public class EvidenceController {
 
     /* auth-only get */
     @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id, @CurrentUser AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        return evidenceRepo.findByIdAndOwner(id, current)
+    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
@@ -102,8 +102,7 @@ public class EvidenceController {
     ){}
 
     @PostMapping("/finalize")
-    public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
-                                           @CurrentUser AppUser currentUser) throws Exception {
+    public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req, @AuthenticationPrincipal AppUser currentUser) throws Exception {
 
         // compute SHA-256 + size from object
         String sha256; long size = 0;
@@ -168,9 +167,9 @@ public class EvidenceController {
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
                                        @RequestParam(defaultValue = "original") String type,
-                                       @CurrentUser AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                                       @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         String bucket; String key;
@@ -201,12 +200,12 @@ public class EvidenceController {
     @PostMapping("/{id}/legal-hold")
     public Evidence setLegalHold(@PathVariable UUID id,
                                  @RequestBody LegalHoldReq body,
-                                 @CurrentUser AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, current).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                                 @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, user).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         ev.setLegalHold(body.legalHold());
         ev = evidenceRepo.save(ev);
-        custody.record(ev, current, body.legalHold()
+        custody.record(ev, user, body.legalHold()
                 ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF, Map.of());
         return ev;
     }
@@ -220,9 +219,9 @@ public class EvidenceController {
     public record RedactReq(String mode) {}
     @PostMapping("/{id}/redact")
     public void requeueRedact(@PathVariable UUID id, @RequestBody RedactReq req,
-                              @CurrentUser AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, current)
+                              @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         var job = jobRepo.save(ProcessingJob.builder()
                 .evidence(ev).type(JobType.REDACT).status(JobStatus.QUEUED).attempts(0)

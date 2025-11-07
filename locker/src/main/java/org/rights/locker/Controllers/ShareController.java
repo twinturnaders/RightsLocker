@@ -138,7 +138,7 @@ public class ShareController {
     @GetMapping("/share/{token}/package")
     public ResponseEntity<StreamingResponseBody> downloadSharedPackage(
             @PathVariable String token,
-            @RequestParam(defaultValue = "redacted") String type
+            @RequestParam(defaultValue = "original") String type
     ) {
         var link = shareLinkRepo.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
