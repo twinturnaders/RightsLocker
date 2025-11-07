@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // auth
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
 
                         // anonymous upload/convert
