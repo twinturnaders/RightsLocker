@@ -98,16 +98,33 @@ public class ShareController {
     /* public: printable metadata pdf */
     @GetMapping(value = "/share/{token}/metadata.pdf", produces = "application/pdf")
     public ResponseEntity<byte[]> shareMetadataPdf(@PathVariable String token) {
-        var s = shareService.requireActive(token);
+        var s  = shareService.requireActive(token);
         var ev = evidenceRepo.findById(s.getEvidenceId()).orElseThrow();
 
         var metadata = mapNonNull(
-                "evidenceId", ev.getId().toString(),
-                "title",      ev.getTitle(),
-                "capturedAt", ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()),
-                "ingestedAt", ev.getCreatedAt()  == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()),
-                "generatedAt",DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
-                "access",     mapNonNull("viaShareToken", s.getToken(), "allowOriginal", s.isAllowOriginal())
+                // Identity & timing
+                "evidenceId",  ev.getId().toString(),
+                "title",       ev.getTitle(),
+                "description", ev.getDescription(),
+                "capturedAt",  ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()),
+                "ingestedAt",  ev.getCreatedAt()  == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()),
+                "generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+
+                // Original object facts (this is what establishes authenticity)
+                "originalKey",   ev.getOriginalKey(),
+                "originalSizeB", ev.getOriginalSizeB(),         // long
+                "originalSha256",ev.getOriginalSha256(),        // 64-hex string you stored at ingest
+                "hashAlgorithm", "SHA-256",
+
+                // Redacted derivative (if any)
+                "redactedKey",   ev.getRedactedKey(),
+                "redactedSizeB", ev.getRedactedSize(),          // if you store it; otherwise omit
+                "status",        ev.getStatus() == null ? null : ev.getStatus().name(),
+
+                // Share/access context (not required for authenticity but helpful)
+                "shareToken",     s.getToken(),
+                "shareAllowOriginal", s.isAllowOriginal(),
+                "shareExpiresAt", s.getExpiresAt()
         );
 
         byte[] pdf = pdfService.buildMetadataPdf(metadata);
@@ -115,6 +132,7 @@ public class ShareController {
                 .header("Content-Disposition","inline; filename=\"metadata.pdf\"")
                 .body(pdf);
     }
+
 
     /* public: packaged zip (media + metadata.json + metadata.pdf + integrity.txt) with S3 preflight */
     @GetMapping("/share/{token}/package")
@@ -152,13 +170,25 @@ public class ShareController {
                 zos.putNextEntry(new java.util.zip.ZipEntry("manifest.json"));
                 zos.write(manifestBytes);
                 zos.closeEntry();
+                String integrity = buildIntegrityText(ev);
+                zos.putNextEntry(new ZipEntry("integrity.txt"));
+                zos.write(integrity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zos.closeEntry();
 
+// Also include the same PDF you serve at /metadata.pdf
+                byte[] pdfBytes = null;
+                try { pdfBytes = generateMetadataPdf(ev, link); } catch (Exception ignore) {}
+                if (pdfBytes != null && pdfBytes.length > 0) {
+                    zos.putNextEntry(new ZipEntry("metadata.pdf"));
+                    zos.write(pdfBytes);
+                    zos.closeEntry();
+                }
                 // media from the correct bucket
                 zos.putNextEntry(new java.util.zip.ZipEntry(filenameForKey(chosenKey)));
                 s3.getObject(b -> b.bucket(chosenBucket).key(chosenKey)).transferTo(zos);
                 zos.closeEntry();
 
-                byte[] pdfBytes = null;
+
                 try { pdfBytes = generateMetadataPdf(ev, link); } catch (Exception ignore) {}
 
                 if (pdfBytes != null && pdfBytes.length > 0) {
@@ -270,6 +300,28 @@ public class ShareController {
         if (k.endsWith(".jpg") || k.endsWith(".jpeg")) return ".jpg";
         if (k.endsWith(".png")) return ".png";
         return "";
+    }
+    private static String buildIntegrityText(Evidence ev) {
+        var sb = new StringBuilder();
+        sb.append("RightsLocker Integrity File\n");
+        sb.append("----------------------------------------\n");
+        sb.append("Evidence ID: ").append(ev.getId()).append("\n");
+        if (ev.getTitle() != null) sb.append("Title: ").append(ev.getTitle()).append("\n");
+        if (ev.getCapturedAt() != null) sb.append("Captured At: ").append(ev.getCapturedAt()).append("\n");
+        sb.append("\n[Original]\n");
+        sb.append("Key: ").append(ev.getOriginalKey()).append("\n");
+        if (ev.getOriginalSizeB() != null) sb.append("Size(bytes): ").append(ev.getOriginalSizeB()).append("\n");
+        if (ev.getOriginalSha256() != null) {
+            sb.append("Hash Algorithm: SHA-256\n");
+            sb.append("SHA-256: ").append(ev.getOriginalSha256()).append("\n");
+        }
+        if (ev.getRedactedKey() != null) {
+            sb.append("\n[Redacted]\n");
+            sb.append("Key: ").append(ev.getRedactedKey()).append("\n");
+            if (ev.getRedactedSize() != null) sb.append("Size(bytes): ").append(ev.getRedactedSize()).append("\n");
+        }
+        sb.append("\nVerification: Compute SHA-256 of the ORIGINAL file and compare with the value above.\n");
+        return sb.toString();
     }
 
 }

@@ -1,130 +1,164 @@
 package org.rights.locker.Services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class PDFBuilderService {
 
-    private final ObjectMapper om;
-
-    /** Build a simple, monospaced PDF containing pretty-printed metadata JSON. */
-    public byte[] buildMetadataPdf(Map<String, Object> metadata) {
-        try {
-            String json = om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
-
-            try (PDDocument doc = new PDDocument()) {
-                PDPage page = new PDPage(PDRectangle.LETTER);
-                doc.addPage(page);
-
-                final PDFont bodyFont = PDType1Font.COURIER;
-                final PDFont titleFont = PDType1Font.HELVETICA_BOLD;
-                final float bodySize = 9f;
-                final float leading = bodySize * 1.2f;
-
-                final float margin = 40f;
-                float startX = margin;
-                float contentWidth = page.getMediaBox().getWidth() - 2 * margin;
-                float y = page.getMediaBox().getHeight() - margin;
-
-                // Title
-                try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-                    cs.beginText();
-                    cs.setFont(titleFont, 14);
-                    cs.newLineAtOffset(startX, y);
-                    cs.showText("RightsLocker Metadata");
-                    cs.endText();
-                }
-                y -= 24f;
-
-                List<String> lines = wrapText(json, bodyFont, bodySize, contentWidth);
-
-                // Write body; open/close a content stream per page
-                PDPageContentStream cs = new PDPageContentStream(doc, page);
-                cs.setFont(bodyFont, bodySize);
-
-                for (String line : lines) {
-                    if (y < margin) {
-                        cs.close();
-                        page = new PDPage(PDRectangle.LETTER);
-                        doc.addPage(page);
-                        y = page.getMediaBox().getHeight() - margin;
-                        cs = new PDPageContentStream(doc, page);
-                        cs.setFont(bodyFont, bodySize);
-                    }
-                    cs.beginText();
-                    cs.newLineAtOffset(startX, y);
-                    cs.showText(line);
-                    cs.endText();
-                    y -= leading;
-                }
-
-                cs.close();
-
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    doc.save(baos);
-                    return baos.toByteArray();
-                }
-            }
-        } catch (Exception e) {
-            // Fail-soft so ZIP generation still succeeds
-            return minimalErrorPdf("PDF generation error: " + e.getMessage());
-        }
-    }
-
-    /** Word-wrap preserving whitespace tokens to fit the page width. */
-    private static List<String> wrapText(String text, PDFont font, float fontSize, float maxWidth) throws IOException {
-        List<String> out = new ArrayList<>();
-        for (String rawLine : text.split("\\r?\\n")) {
-            StringBuilder line = new StringBuilder();
-            for (String tok : rawLine.split("(?<=\\s)|(?=\\s)")) { // keep spaces as tokens
-                String candidate = line + tok;
-                float w = font.getStringWidth(candidate) / 1000f * fontSize;
-                if (w > maxWidth && line.length() > 0) {
-                    out.add(line.toString());
-                    line = new StringBuilder(tok);
-                } else {
-                    line.append(tok);
-                }
-            }
-            out.add(line.toString());
-        }
-        return out;
-    }
-
-    /** Very small one-page PDF fallback; if PDFBox itself fails, return UTF-8 bytes. */
-    private static byte[] minimalErrorPdf(String msg) {
+    public byte[] buildMetadataPdf(Map<String, ?> meta) {
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.LETTER);
             doc.addPage(page);
+
+            // Margins & layout
+            float margin = 54f; // 0.75"
+            float y = page.getMediaBox().getHeight() - margin;
+
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+
+                // Header
                 cs.beginText();
-                cs.setFont(PDType1Font.HELVETICA, 12);
-                cs.newLineAtOffset(40, page.getMediaBox().getHeight() - 40);
-                cs.showText(msg);
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                cs.newLineAtOffset(margin, y);
+                cs.showText("Evidence Metadata Report");
+                cs.endText();
+                y -= 24;
+
+                // Subtitle
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 10);
+                cs.newLineAtOffset(margin, y);
+                cs.showText("Generated by RightsLocker on " +
+                        nv(meta, "generatedAt", Instant.now().toString()));
+                cs.endText();
+                y -= 18;
+
+                // Section: Identity
+                y = section(cs, margin, y, "Identity");
+                y = kv(cs, margin, y, "Evidence ID",  nv(meta, "evidenceId", null));
+                y = kv(cs, margin, y, "Title",        nv(meta, "title", null));
+                y = kv(cs, margin, y, "Description",  nv(meta, "description", null));
+                y = kv(cs, margin, y, "Status",       nv(meta, "status", null));
+                y = kv(cs, margin, y, "Captured At",  nv(meta, "capturedAt", null));
+                y = kv(cs, margin, y, "Ingested At",  nv(meta, "ingestedAt", null));
+                y -= 6;
+
+                // Section: Original Asset (critical for authenticity)
+                y = section(cs, margin, y, "Original Asset (Authoritative Copy)");
+                y = kv(cs, margin, y, "S3 Key",       nv(meta, "originalKey", null));
+                y = kv(cs, margin, y, "Size (bytes)", nv(meta, "originalSizeB", null));
+                y = kv(cs, margin, y, "Hash Algorithm", nv(meta, "hashAlgorithm", "SHA-256"));
+                y = kvMono(cs, margin, y, "SHA-256",  nv(meta, "originalSha256", null));
+                y -= 6;
+
+                // Section: Redacted Derivative (if present)
+                if (meta.get("redactedKey") != null) {
+                    y = section(cs, margin, y, "Redacted Derivative");
+                    y = kv(cs, margin, y, "S3 Key",        nv(meta, "redactedKey", null));
+                    y = kv(cs, margin, y, "Size (bytes)",  nv(meta, "redactedSizeB", null));
+                    y -= 6;
+                }
+
+                // Section: Share Context
+                y = section(cs, margin, y, "Share Context");
+                y = kv(cs, margin, y, "Share Token",        nv(meta, "shareToken", null));
+                y = kv(cs, margin, y, "Allow Original",     nv(meta, "shareAllowOriginal", null));
+                y = kv(cs, margin, y, "Share Expires At",   nv(meta, "shareExpiresAt", null));
+                y -= 6;
+
+                // Section: Verification Guidance
+                y = section(cs, margin, y, "Verification Guidance");
+                y = paragraph(cs, margin, y,
+                        "To verify authenticity, independently compute SHA-256 for the ORIGINAL file and " +
+                                "compare it byte-for-byte with the value above. If they match, the file has not been altered " +
+                                "since the time it was hashed at ingestion. Keep this report with the evidence package."
+                );
+
+                // Footnote
+                y -= 8;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_OBLIQUE, 8);
+                cs.newLineAtOffset(margin, Math.max(y, margin));
+                cs.showText("© RightsLocker — chain-of-custody & integrity tooling");
                 cs.endText();
             }
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                doc.save(baos);
-                return baos.toByteArray();
+
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                doc.save(bos);
+                return bos.toByteArray();
             }
-        } catch (IOException ioe) {
-            return msg.getBytes(StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.warn("PDF build failed", e);
+            return new byte[0];
         }
+    }
+
+    private static String nv(Map<String, ?> m, String key, String defVal) {
+        Object v = m.get(key);
+        return v == null ? defVal : Objects.toString(v);
+    }
+
+    private static float section(PDPageContentStream cs, float x, float y, String title) throws Exception {
+        y -= 12;
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA_BOLD, 12);
+        cs.newLineAtOffset(x, y);
+        cs.showText(title);
+        cs.endText();
+        return y - 8;
+    }
+
+    private static float kv(PDPageContentStream cs, float x, float y, String k, String v) throws Exception {
+        if (v == null || v.isBlank()) return y;
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA, 10);
+        cs.newLineAtOffset(x, y);
+        cs.showText(k + ": " + v);
+        cs.endText();
+        return y - 14;
+    }
+
+    // monospace line for hashes
+    private static float kvMono(PDPageContentStream cs, float x, float y, String k, String v) throws Exception {
+        if (v == null || v.isBlank()) return y;
+        cs.beginText();
+        cs.setFont(PDType1Font.COURIER, 10);
+        cs.newLineAtOffset(x, y);
+        cs.showText(k + ": " + v);
+        cs.endText();
+        return y - 14;
+    }
+
+    private static float paragraph(PDPageContentStream cs, float x, float y, String text) throws Exception {
+        // extremely simple line break
+        final int maxChars = 90;
+        String[] words = text.split("\\s+");
+        StringBuilder line = new StringBuilder();
+        cs.setFont(PDType1Font.HELVETICA, 10);
+        for (String w : words) {
+            if (line.length() + w.length() + 1 > maxChars) {
+                cs.beginText(); cs.newLineAtOffset(x, y); cs.showText(line.toString()); cs.endText();
+                y -= 14; line.setLength(0);
+            }
+            if (!line.isEmpty()) line.append(' ');
+            line.append(w);
+        }
+        if (!line.isEmpty()) {
+            cs.beginText(); cs.newLineAtOffset(x, y); cs.showText(line.toString()); cs.endText();
+            y -= 14;
+        }
+        return y;
     }
 }
