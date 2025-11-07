@@ -1,0 +1,6 @@
+@import '../login/login.component.css';
+.auth-card{
+  box-shadow: 0 3px 8px rgb(43, 48, 43);
+}
+
+.hint { color:#6b7280; }

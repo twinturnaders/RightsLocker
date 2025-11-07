@@ -1,5 +1,5 @@
 <div class="container">
-  <div class="form card">
+  <div class="auth-card">
     <h2>Create your account</h2>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label class="label">Email</label>
@@ -24,6 +24,10 @@
         <button class="btn primary" type="submit" [disabled]="form.invalid || loading">Create account</button>
         <a routerLink="/login" class="btn ghost">Back to login</a>
         <span style="margin-left:auto;color:var(--err)" *ngIf="error">{{error}}</span>
+        <p class="muted small">
+          Already have an account?
+          <a routerLink="/login">Sign in</a>
+        </p>
       </div>
     </form>
   </div>

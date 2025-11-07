@@ -16,6 +16,9 @@ export class LoginComponent {
   auth = inject(AuthService);
   router = inject(Router);
   loading = false; error = '';
+  showEyeSlash: boolean = true;
+  fieldTextType: boolean = false;
+
   form = this.fb.group({ email: ['', [Validators.required, Validators.email]], password: ['', Validators.required] });
   submit(){
     if (this.form.invalid) return;
