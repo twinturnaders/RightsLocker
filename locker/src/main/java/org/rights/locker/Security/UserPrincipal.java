@@ -22,6 +22,7 @@ public class UserPrincipal implements UserDetails {
     private final String password;
     private final Role role;
 
+
     public UserPrincipal(UUID id, String email, String password,
                           Role role) {
         this.id = id;

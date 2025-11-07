@@ -7,7 +7,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collection;
 import java.util.List;
 
-public record UserPrincipal(AppUser user) implements org.springframework.security.core.userdetails.UserDetails {
+public record UserPrincipalDTO(AppUser user) implements org.springframework.security.core.userdetails.UserDetails {
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
