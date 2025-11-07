@@ -39,7 +39,7 @@ export class EvidenceDetailComponent implements OnChanges {
   }
 
   thumbUrl(): string | undefined {
-    return this.e?.id ? `/${this.base}/evidence/thumb?id=${this.e.id}` : undefined;
+    return this.e?.id ? `${this.base}/evidence/thumb?id=${this.e.id}` : undefined;
   }
 
   download(type: 'redacted'|'thumbnail'|'original' = 'redacted') {

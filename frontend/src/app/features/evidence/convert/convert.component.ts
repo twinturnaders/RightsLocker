@@ -92,8 +92,8 @@ export class ConvertComponent {
         }
 
         // 5) ready: download via public package + metadata pdf
-        this.readyUrl = `/${this.base}/share/${this.shareToken}/package?type=redacted&includeThumb=true`;
-        this.metaPdfUrl = `/${this.base}/share/${this.shareToken}/metadata.pdf`;
+        this.readyUrl = `${this.base}/share/${this.shareToken}/package?type=redacted&includeThumb=true`;
+        this.metaPdfUrl = `${this.base}/share/${this.shareToken}/metadata.pdf`;
       } else {
         // Authed user: you could also poll your /api/evidence/{id} if you want
         // but they can always download individually from the detail pane.
