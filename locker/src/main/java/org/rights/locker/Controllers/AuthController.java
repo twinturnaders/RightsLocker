@@ -56,13 +56,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
-        var u = AppUser.builder()
-                .email(req.email())
-                .passwordHash((req.password()))
-                .displayName(req.displayName())
-                .role(Role.valueOf("USER"))
-                .build();
-        u = userRepo.save(u);
-        return ResponseEntity.ok(Map.of("id", u.getId()));
+        var u = authService.register(req.email(), req.password(), req.displayName());
+        userRepo.save(u);
+        var access = jwtService.issueAccessToken(authService.getIdFromEmail(req.email()));
+        var refresh = jwtService.issueRefreshToken(authService.getIdFromEmail(req.email()));
+        return ResponseEntity.ok(new TokenResponse(access, refresh));
     }
 }
