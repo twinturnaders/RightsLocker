@@ -3,17 +3,52 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+
 export interface Evidence {
   id: string;
-  title?: string;
-  description?: string;
-  capturedAt?: string;
-  status: 'RECEIVED'|'PROCESSING'|'READY'|'ERROR'|'REDACTED';
-  legalHold: boolean;
-  derivativeUrl?: string;
-  thumbnailUrl?: string;
-}
+  title?: string | null;
+  description?: string | null;
 
+  capturedAt?: string | null;   // ISO
+  createdAt?: string | null;    // ISO
+  updatedAt?: string | null;    // ISO
+
+  captureLatlon?: string | null;   // your format (e.g., "46.87,-113.99")
+  captureAccuracyM?: number | null;
+
+  originalKey?: string | null;
+  originalSizeB?: number | null;
+  originalSha256?: string | null;
+
+  redactedKey?: string | null;
+  redactedSize?: number | null;
+  thumbnailKey?: string | null;
+
+  status?: 'RECEIVED'|'PROCESSING'|'READY'|'ERROR'|string;
+  legalHold?: boolean | null;
+
+  // rich metadata
+  exifDateOriginal?: string | null;   // ISO
+  tzOffsetMinutes?: number | null;
+  captureAltitudeM?: number | null;
+  captureHeadingDeg?: number | null;
+
+  cameraMake?: string | null;
+  cameraModel?: string | null;
+  lensModel?: string | null;
+  software?: string | null;
+
+  widthPx?: number | null;
+  heightPx?: number | null;
+  orientationDeg?: number | null;
+
+  container?: string | null;
+  videoCodec?: string | null;
+  audioCodec?: string | null;
+  durationMs?: number | null;
+  videoFps?: number | null;
+  videoRotationDeg?: number | null;
+}
 export interface Page<T> {
   content: T[];
   totalElements: number;
@@ -43,6 +78,7 @@ export class EvidenceApi {
   get(id: string): Observable<Evidence> {
     return this.http.get<Evidence>(`${this.base}/${id}`);
   }
+
 
   setLegalHold(id: string, legalHold: boolean) {
     return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });
@@ -81,4 +117,8 @@ export class EvidenceApi {
       links: { redactedUrl?: string|null; originalUrl?: string|null; thumbUrl?: string|null }
     }>(`${environment.apiBase}/share/${token}`);
   }
+
+  thumbUrlById(id: string){ return `${this.base}/thumb?id=${id}`; }
+  thumbUrlByKey(key: string){ return `${this.base}/thumb?key=${encodeURIComponent(key)}`; }
+
 }

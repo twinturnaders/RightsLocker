@@ -1,26 +1,73 @@
-<div *ngIf="loading">Loading…</div>
-<div *ngIf="error" class="help">{{error}}</div>
-
-<ng-container *ngIf="e as ev">
-  <div class="card">
-    <h2>{{ev.title || 'Untitled'}}</h2>
-    <p>{{ev.description}}</p>
-
-    <div class="kv">
-      <div>Status</div><div><b>{{ev.status}}</b></div>
-      <div>Captured</div><div>{{ev.capturedAt | date:'long'}}</div>
-      <div>Legal Hold</div>
-      <div><label><input type="checkbox" [checked]="ev.legalHold" (change)="toggleHold($event)"> Enabled</label></div>
-    </div>
-
-    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
-      <button class="btn" (click)="download('original')">Download Original</button>
-      <button class="btn" (click)="download('redacted')">Download Redacted</button>
-      <button class="btn" (click)="download('thumbnail')">Download Thumbnail</button>
-    </div>
-
-    <div style="margin-top:12px" *ngIf="thumbUrl() as th">
-      <img [src]="th" alt="thumbnail" style="max-width:260px;border-radius:12px;border:1px solid #ddd">
-    </div>
+<div class="wrap">
+  <div class="hdr">
+    <a routerLink="/evidence" class="link">&larr; Back to list</a>
+    <h1>Evidence details</h1>
   </div>
-</ng-container>
+
+  <div *ngIf="loading()">Loading…</div>
+  <div *ngIf="error()">{{ error() }}</div>
+  <ng-container *ngIf="!loading() && evidence() as ev">
+    <div class="grid">
+      <div class="left">
+        <img *ngIf="thumbSrc()" [src]="thumbSrc()!" alt="thumbnail" class="thumb"/>
+
+        <div class="card">
+          <h2>{{ ev.title || 'Untitled' }}</h2>
+          <p class="muted" *ngIf="ev.description">{{ ev.description }}</p>
+
+          <div class="chips">
+            <span class="chip" [class.ok]="ev.status==='READY'" [class.warn]="ev.status==='PROCESSING'">{{ ev.status || '—' }}</span>
+            <span class="chip danger" *ngIf="ev.legalHold">Legal hold</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Integrity</h3>
+          <table class="kv">
+            <tr><th>Original SHA-256</th><td><code class="mono">{{ ev.originalSha256 || '—' }}</code></td></tr>
+            <tr><th>Original size</th><td>{{ ev.originalSizeB | bytes }}</td></tr>
+            <tr><th>Ingested at</th><td>{{ ev.createdAt | date:'medium':'UTC' }}</td></tr>
+            <tr><th>Captured at</th><td>{{ ev.capturedAt ? (ev.capturedAt | date:'medium':'UTC') : '—' }}</td></tr>
+            <tr><th>EXIF date original</th><td>{{ ev.exifDateOriginal ? (ev.exifDateOriginal | date:'medium':'UTC') : '—' }}</td></tr>
+            <tr><th>Time zone (EXIF)</th><td>{{ tzLabel(ev.tzOffsetMinutes) }}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <h3>Capture</h3>
+          <table class="kv">
+            <tr><th>Location</th><td>{{ ev.captureLatlon || '—' }}</td></tr>
+            <tr><th>Accuracy</th><td>{{ ev.captureAccuracyM != null ? (ev.captureAccuracyM + ' m') : '—' }}</td></tr>
+            <tr><th>Altitude</th><td>{{ ev.captureAltitudeM != null ? (ev.captureAltitudeM + ' m') : '—' }}</td></tr>
+            <tr><th>Heading</th><td>{{ ev.captureHeadingDeg != null ? (ev.captureHeadingDeg + '°') : '—' }}</td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Camera / Image</h3>
+          <table class="kv">
+            <tr><th>Make / Model</th><td>{{ ev.cameraMake || '—' }} {{ ev.cameraModel || '' }}</td></tr>
+            <tr *ngIf="ev.lensModel"><th>Lens</th><td>{{ ev.lensModel }}</td></tr>
+            <tr><th>Software</th><td>{{ ev.software || '—' }}</td></tr>
+            <tr><th>Dimensions</th><td>{{ dimLabel(ev) }}</td></tr>
+            <tr><th>Orientation</th><td>{{ ev.orientationDeg != null ? (ev.orientationDeg + '°') : '—' }}</td></tr>
+          </table>
+        </div>
+
+        <div class="card" *ngIf="hasVideo(ev)">
+          <h3>Video</h3>
+          <table class="kv">
+            <tr><th>Container</th><td>{{ ev.container || '—' }}</td></tr>
+            <tr><th>Video codec</th><td>{{ ev.videoCodec || '—' }}</td></tr>
+            <tr><th>Audio codec</th><td>{{ ev.audioCodec || '—' }}</td></tr>
+            <tr><th>Duration</th><td>{{ ev.durationMs | durationMs }}</td></tr>
+            <tr><th>Frame rate</th><td>{{ ev.videoFps != null ? (ev.videoFps | number:'1.0-2') + ' fps' : '—' }}</td></tr>
+            <tr><th>Rotation</th><td>{{ ev.videoRotationDeg != null ? (ev.videoRotationDeg + '°') : '—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

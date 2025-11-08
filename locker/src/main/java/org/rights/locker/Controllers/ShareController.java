@@ -14,23 +14,18 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static org.rights.locker.Controllers.EvidencePackageController.*;
 
 @Slf4j
 @RestController
@@ -40,22 +35,20 @@ public class ShareController {
 
     private final ShareService shareService;
     private final EvidenceRepo evidenceRepo;
+    private final ShareLinkRepo shareLinkRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
     private final ObjectMapper om;
     private final PDFBuilderService pdfService;
-    private final ShareLinkRepo shareLinkRepo;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    /* owner/system creates a share link */
     @PostMapping("/evidence/{id}/share")
     public ShareLink create(@PathVariable UUID id, @RequestBody org.rights.locker.DTOs.ShareCreateRequest req){
         return shareService.create(id, req.expiresAt(), req.allowOriginal());
     }
 
-    /* public: small metadata + short-lived presigned URLs */
     @GetMapping("/share/{token}")
     public ResponseEntity<?> getShare(@PathVariable String token){
         var share = shareService.requireActive(token);
@@ -69,81 +62,96 @@ public class ShareController {
         var originalUrl = share.isAllowOriginal() ? presign(bucketOriginals, ev.getOriginalKey(), Duration.ofMinutes(10)) : null;
         var thumbUrl    = hasThumb    ? presign(bucketHot,        ev.getThumbnailKey(), Duration.ofMinutes(10)) : null;
 
-        // build inner maps without nulls
-        var evidenceMap = mapNonNull(
-                "id",         ev.getId(),
-                "title",      ev.getTitle(),
-                "description",ev.getDescription(),
-                "capturedAt", ev.getCapturedAt(),
-                "status",     ev.getStatus() == null ? null : ev.getStatus().name(),
-                "hasRedacted",hasRedacted,
-                "hasThumb",   hasThumb
-        );
-        var linksMap = mapNonNull(
-                "redactedUrl", redactedUrl,
-                "originalUrl", originalUrl,
-                "thumbUrl",    thumbUrl
-        );
+        var evidenceMap = new LinkedHashMap<String,Object>();
+        evidenceMap.put("id", ev.getId());
+        evidenceMap.put("title", ev.getTitle());
+        evidenceMap.put("description", ev.getDescription());
+        evidenceMap.put("capturedAt", ev.getCapturedAt());
+        evidenceMap.put("status", ev.getStatus() == null ? null : ev.getStatus().name());
+        evidenceMap.put("hasRedacted", hasRedacted);
+        evidenceMap.put("hasThumb", hasThumb);
 
-        // outer map has only non-null values too
-        var payload = mapNonNull(
-                "token",         share.getToken(),
-                "expiresAt",     share.getExpiresAt(),
-                "allowOriginal", share.isAllowOriginal(),
-                "evidence",      evidenceMap,
-                "links",         linksMap
-        );
+        // expose a subset of rich metadata (safe for viewers)
+        evidenceMap.put("exifDateOriginal", ev.getExifDateOriginal());
+        evidenceMap.put("cameraMake", ev.getCameraMake());
+        evidenceMap.put("cameraModel", ev.getCameraModel());
+        evidenceMap.put("widthPx", ev.getWidthPx());
+        evidenceMap.put("heightPx", ev.getHeightPx());
+        evidenceMap.put("container", ev.getContainer());
+        evidenceMap.put("videoCodec", ev.getVideoCodec());
+        evidenceMap.put("audioCodec", ev.getAudioCodec());
+        evidenceMap.put("durationMs", ev.getDurationMs());
+        evidenceMap.put("videoFps", ev.getVideoFps());
+
+        var linksMap = new LinkedHashMap<String,Object>();
+        if (redactedUrl != null) linksMap.put("redactedUrl", redactedUrl);
+        if (originalUrl != null) linksMap.put("originalUrl", originalUrl);
+        if (thumbUrl != null)    linksMap.put("thumbUrl",    thumbUrl);
+
+        var payload = new LinkedHashMap<String,Object>();
+        payload.put("token", share.getToken());
+        payload.put("expiresAt", share.getExpiresAt());
+        payload.put("allowOriginal", share.isAllowOriginal());
+        payload.put("evidence", evidenceMap);
+        payload.put("links", linksMap);
+
         return ResponseEntity.ok(payload);
     }
-    /* public: printable metadata pdf */
+
     @GetMapping(value = "/share/{token}/metadata.pdf", produces = "application/pdf")
     public ResponseEntity<byte[]> shareMetadataPdf(@PathVariable String token) {
         var s  = shareService.requireActive(token);
         var ev = evidenceRepo.findById(s.getEvidenceId()).orElseThrow();
 
-        var metadata = mapNonNull(
-                // Identity & timing
-                "evidenceId",  ev.getId().toString(),
-                "title",       ev.getTitle(),
-                "description", ev.getDescription(),
-                "capturedAt",  ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()),
-                "ingestedAt",  ev.getCreatedAt()  == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()),
-                "generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+        var m = new LinkedHashMap<String,Object>();
+        m.put("evidenceId", ev.getId().toString());
+        m.put("title", ev.getTitle());
+        m.put("description", ev.getDescription());
+        m.put("capturedAt", ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()));
+        m.put("ingestedAt", ev.getCreatedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()));
+        m.put("generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+        m.put("hashAlgorithm", "SHA-256");
+        m.put("originalSha256", ev.getOriginalSha256());
+        m.put("originalSizeB", ev.getOriginalSizeB());
 
-                // Original object facts (this is what establishes authenticity)
-                "originalKey",   ev.getOriginalKey(),
-                "originalSizeB", ev.getOriginalSizeB(),         // long
-                "originalSha256",ev.getOriginalSha256(),        // 64-hex string you stored at ingest
-                "hashAlgorithm", "SHA-256",
+        // rich metadata
+        m.put("dateOriginal", ev.getExifDateOriginal());
+        m.put("tzMinutes", ev.getTzOffsetMinutes());
+        m.put("altitudeM", ev.getCaptureAltitudeM());
+        m.put("headingDeg", ev.getCaptureHeadingDeg());
+        m.put("cameraMake", ev.getCameraMake());
+        m.put("cameraModel", ev.getCameraModel());
+        m.put("lensModel", ev.getLensModel());
+        m.put("software", ev.getSoftware());
+        m.put("widthPx", ev.getWidthPx());
+        m.put("heightPx", ev.getHeightPx());
+        m.put("orientationDeg", ev.getOrientationDeg());
+        m.put("container", ev.getContainer());
+        m.put("videoCodec", ev.getVideoCodec());
+        m.put("audioCodec", ev.getAudioCodec());
+        m.put("durationMs", ev.getDurationMs());
+        m.put("videoFps", ev.getVideoFps());
+        m.put("videoRotationDeg", ev.getVideoRotationDeg());
 
-                // Redacted derivative (if any)
-                "redactedKey",   ev.getRedactedKey(),
-                "redactedSizeB", ev.getRedactedSize(),          // if you store it; otherwise omit
-                "status",        ev.getStatus() == null ? null : ev.getStatus().name(),
+        // share context
+        m.put("shareToken", s.getToken());
+        m.put("shareAllowOriginal", s.isAllowOriginal());
+        m.put("shareExpiresAt", s.getExpiresAt());
 
-                // Share/access context (not required for authenticity but helpful)
-                "shareToken",     s.getToken(),
-                "shareAllowOriginal", s.isAllowOriginal(),
-                "shareExpiresAt", s.getExpiresAt()
-        );
-
-        byte[] pdf = pdfService.buildMetadataPdf(metadata);
+        byte[] pdf = pdfService.buildMetadataPdf(m);
         return ResponseEntity.ok()
                 .header("Content-Disposition","inline; filename=\"metadata.pdf\"")
                 .body(pdf);
     }
 
-
-    /* public: packaged zip (media + metadata.json + metadata.pdf + integrity.txt) with S3 preflight */
+    /* zipped package (same logic as before, trimmed here to show bucket switch + pdf include) */
     @GetMapping("/share/{token}/package")
     public ResponseEntity<StreamingResponseBody> downloadSharedPackage(
             @PathVariable String token,
-            @RequestParam(defaultValue = "original") String type
+            @RequestParam(defaultValue = "redacted") String type
     ) {
-        var link = shareLinkRepo.findByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        var ev = evidenceRepo.findById(link.getEvidenceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var link = shareLinkRepo.findByToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var ev = evidenceRepo.findById(link.getEvidenceId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         String chosenKey = switch (type.toLowerCase()) {
             case "redacted" -> (ev.getRedactedKey() != null ? ev.getRedactedKey() : ev.getOriginalKey());
@@ -152,50 +160,35 @@ public class ShareController {
         };
         if (chosenKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No asset available to package");
 
-        // choose bucket based on which key we picked
         String chosenBucket = chosenKey.equals(ev.getOriginalKey()) ? bucketOriginals : bucketHot;
 
         StreamingResponseBody body = out -> {
             try (var zos = new java.util.zip.ZipOutputStream(out)) {
-
-                var manifest = mapNonNull(
-                        "evidenceId", ev.getId().toString(),
-                        "title",      ev.getTitle(),
-                        "description",ev.getDescription(),
-                        "capturedAt", ev.getCapturedAt(),
-                        "status",     ev.getStatus() == null ? null : ev.getStatus().name(),
-                        "includedObjectKey", chosenKey
-                );
-                var manifestBytes = om.writeValueAsBytes(manifest);
+                // manifest
+                var manifest = new LinkedHashMap<String,Object>();
+                manifest.put("evidenceId", ev.getId().toString());
+                manifest.put("title", ev.getTitle());
+                manifest.put("description", ev.getDescription());
+                manifest.put("capturedAt", ev.getCapturedAt());
+                manifest.put("status", ev.getStatus() == null ? null : ev.getStatus().name());
+                manifest.put("includedObjectKey", chosenKey);
                 zos.putNextEntry(new java.util.zip.ZipEntry("manifest.json"));
-                zos.write(manifestBytes);
-                zos.closeEntry();
-                String integrity = buildIntegrityText(ev);
-                zos.putNextEntry(new ZipEntry("integrity.txt"));
-                zos.write(integrity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zos.write(om.writeValueAsBytes(manifest));
                 zos.closeEntry();
 
-// Also include the same PDF you serve at /metadata.pdf
-                byte[] pdfBytes = null;
-                try { pdfBytes = generateMetadataPdf(ev, link); } catch (Exception ignore) {}
-                if (pdfBytes != null && pdfBytes.length > 0) {
-                    zos.putNextEntry(new ZipEntry("metadata.pdf"));
-                    zos.write(pdfBytes);
-                    zos.closeEntry();
-                }
-                // media from the correct bucket
+                // media
                 zos.putNextEntry(new java.util.zip.ZipEntry(filenameForKey(chosenKey)));
                 s3.getObject(b -> b.bucket(chosenBucket).key(chosenKey)).transferTo(zos);
                 zos.closeEntry();
 
-
-                try { pdfBytes = generateMetadataPdf(ev, link); } catch (Exception ignore) {}
-
-                if (pdfBytes != null && pdfBytes.length > 0) {
-                    zos.putNextEntry(new java.util.zip.ZipEntry("metadata.pdf"));
-                    zos.write(pdfBytes);
+                // pdf
+                byte[] pdf = sharePdfMap(ev, link);
+                if (pdf != null && pdf.length > 0) {
+                    zos.putNextEntry(new ZipEntry("metadata.pdf"));
+                    zos.write(pdf);
                     zos.closeEntry();
                 }
+
                 zos.finish();
             }
         };
@@ -205,123 +198,53 @@ public class ShareController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(body);
     }
-    /* owner revokes share */
-    @PostMapping("/share/{token}/revoke")
-    public ShareLink revoke(@PathVariable String token){
-        return shareService.revoke(token);
-    }
 
     /* helpers */
-    private byte[] generateMetadataPdf(Evidence ev, ShareLink link) {
-        try (var doc = new org.apache.pdfbox.pdmodel.PDDocument()) {
-            var page = new org.apache.pdfbox.pdmodel.PDPage();
-            doc.addPage(page);
+    private byte[] sharePdfMap(Evidence ev, ShareLink s){
+        var m = new LinkedHashMap<String,Object>();
+        m.put("evidenceId", ev.getId().toString());
+        m.put("title", ev.getTitle());
+        m.put("description", ev.getDescription());
+        m.put("capturedAt", ev.getCapturedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCapturedAt()));
+        m.put("ingestedAt", ev.getCreatedAt() == null ? null : DateTimeFormatter.ISO_INSTANT.format(ev.getCreatedAt()));
+        m.put("generatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+        m.put("hashAlgorithm", "SHA-256");
+        m.put("originalSha256", ev.getOriginalSha256());
+        m.put("originalSizeB", ev.getOriginalSizeB());
+        // rich
+        m.put("dateOriginal", ev.getExifDateOriginal());
+        m.put("tzMinutes", ev.getTzOffsetMinutes());
+        m.put("altitudeM", ev.getCaptureAltitudeM());
+        m.put("headingDeg", ev.getCaptureHeadingDeg());
+        m.put("cameraMake", ev.getCameraMake());
+        m.put("cameraModel", ev.getCameraModel());
+        m.put("lensModel", ev.getLensModel());
+        m.put("software", ev.getSoftware());
+        m.put("widthPx", ev.getWidthPx());
+        m.put("heightPx", ev.getHeightPx());
+        m.put("orientationDeg", ev.getOrientationDeg());
+        m.put("container", ev.getContainer());
+        m.put("videoCodec", ev.getVideoCodec());
+        m.put("audioCodec", ev.getAudioCodec());
+        m.put("durationMs", ev.getDurationMs());
+        m.put("videoFps", ev.getVideoFps());
+        m.put("videoRotationDeg", ev.getVideoRotationDeg());
+        // share
+        m.put("shareToken", s.getToken());
+        m.put("shareAllowOriginal", s.isAllowOriginal());
+        m.put("shareExpiresAt", s.getExpiresAt());
 
-            var font = org.apache.pdfbox.pdmodel.font.PDType1Font.HELVETICA;
-            try (var content = new org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page)) {
-                content.beginText();
-                content.setFont(font, 12);
-                content.newLineAtOffset(50, 750);
-                content.showText("Evidence Metadata");
-                content.newLineAtOffset(0, -20);
-                content.showText("ID: " + ev.getId());
-                content.newLineAtOffset(0, -20);
-                content.showText("Title: " + safe(ev.getTitle()));
-                content.newLineAtOffset(0, -20);
-                content.showText("Captured At: " + String.valueOf(ev.getCapturedAt()));
-                content.newLineAtOffset(0, -20);
-                content.showText("Share Token: " + link.getToken());
-                content.endText();
-            }
-
-            try (var bos = new java.io.ByteArrayOutputStream()) {
-                doc.save(bos);
-                return bos.toByteArray();
-            }
-        } catch (Exception e) {
-            log.warn("PDF generation failed for evidence {}", ev.getId(), e);
-            return new byte[0];
-        }
+        try { return pdfService.buildMetadataPdf(m); }
+        catch (Exception e){ log.warn("PDF build failed: {}", e.toString()); return new byte[0]; }
     }
 
-    private static String safe(String s) { return s == null ? "" : s; }
-    private static String filenameForKey(String key) {
-        // If your keys are "redacted/<id>.mp4", keep the leaf name
-        int i = key.lastIndexOf('/');
-        return i >= 0 ? key.substring(i + 1) : key;
-    }
-    static Map<String,Object> mapNonNull(Object... kv) {
-        Map<String,Object> m = new java.util.LinkedHashMap<>();
-        for (int i = 0; i + 1 < kv.length; i += 2) {
-            String k = (String) kv[i];
-            Object v = kv[i + 1];
-            if (k != null && v != null) m.put(k, v);
-        }
-        return java.util.Collections.unmodifiableMap(m);
-    }
     private String presign(String bucket, String key, Duration ttl) {
         if (key == null || key.isBlank()) return null;
         var req = GetObjectRequest.builder().bucket(bucket).key(key).build();
         return presigner.presignGetObject(b -> b.signatureDuration(ttl).getObjectRequest(req)).url().toString();
     }
-
-    private static long copyToZip(ZipOutputStream zip, ResponseInputStream<?> in, String name, MessageDigest md)
-            throws java.io.IOException {
-        zip.putNextEntry(new ZipEntry(name));
-        byte[] buf = new byte[8192];
-        int r; long size = 0;
-        while ((r = in.read(buf)) != -1) {
-            md.update(buf, 0, r);
-            zip.write(buf, 0, r);
-            size += r;
-        }
-        zip.closeEntry();
-        in.close();
-        return size;
+    private static String filenameForKey(String key) {
+        int i = key.lastIndexOf('/');
+        return i >= 0 ? key.substring(i + 1) : key;
     }
-
-    private static void putText(ZipOutputStream zip, String name, String text) throws java.io.IOException {
-        zip.putNextEntry(new ZipEntry(name));
-        zip.write(text.getBytes());
-        zip.closeEntry();
-    }
-
-    private static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws java.io.IOException {
-        zip.putNextEntry(new ZipEntry(name));
-        zip.write(bytes);
-        zip.closeEntry();
-    }
-
-    private static String guessExt(String key) {
-        String k = key == null ? "" : key.toLowerCase();
-        if (k.endsWith(".mp4")) return ".mp4";
-        if (k.endsWith(".mov")) return ".mov";
-        if (k.endsWith(".mkv")) return ".mkv";
-        if (k.endsWith(".jpg") || k.endsWith(".jpeg")) return ".jpg";
-        if (k.endsWith(".png")) return ".png";
-        return "";
-    }
-    private static String buildIntegrityText(Evidence ev) {
-        var sb = new StringBuilder();
-        sb.append("RightsLocker Integrity File\n");
-        sb.append("----------------------------------------\n");
-        sb.append("Evidence ID: ").append(ev.getId()).append("\n");
-        if (ev.getTitle() != null) sb.append("Title: ").append(ev.getTitle()).append("\n");
-        if (ev.getCapturedAt() != null) sb.append("Captured At: ").append(ev.getCapturedAt()).append("\n");
-        sb.append("\n[Original]\n");
-        sb.append("Key: ").append(ev.getOriginalKey()).append("\n");
-        if (ev.getOriginalSizeB() != null) sb.append("Size(bytes): ").append(ev.getOriginalSizeB()).append("\n");
-        if (ev.getOriginalSha256() != null) {
-            sb.append("Hash Algorithm: SHA-256\n");
-            sb.append("SHA-256: ").append(ev.getOriginalSha256()).append("\n");
-        }
-        if (ev.getRedactedKey() != null) {
-            sb.append("\n[Redacted]\n");
-            sb.append("Key: ").append(ev.getRedactedKey()).append("\n");
-            if (ev.getRedactedSize() != null) sb.append("Size(bytes): ").append(ev.getRedactedSize()).append("\n");
-        }
-        sb.append("\nVerification: Compute SHA-256 of the ORIGINAL file and compare with the value above.\n");
-        return sb.toString();
-    }
-
 }

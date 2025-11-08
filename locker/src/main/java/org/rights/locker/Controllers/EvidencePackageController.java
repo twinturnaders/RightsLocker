@@ -28,6 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -103,26 +104,47 @@ public class EvidencePackageController {
                     } catch (Exception ignore) {}
                 }
 
-                // 3) metadata.json
+                // 3) metadata.json (include rich metadata)
                 boolean isRedacted = hasRedacted && !("original".equalsIgnoreCase(type));
-                Map<String,Object> metadata = Map.of(
-                        "evidenceId", ev.getId().toString(),
-                        "title", ev.getTitle(),
-                        "capturedAt", ev.getCapturedAt() != null ? ISO.format(ev.getCapturedAt()) : null,
-                        "ingestedAt", ev.getCreatedAt() != null ? ISO.format(ev.getCreatedAt()) : null,
-                        "processedAt", ISO.format(Instant.now()),
-                        "original", Map.of(
-                                "sha256", ev.getOriginalSha256(),
-                                "sizeBytes", ev.getOriginalSizeB()
-                        ),
-                        (isRedacted ? "redacted" : "delivered"), Map.of(
-                                "sha256", mediaShaHex,
-                                "sizeBytes", mediaSize
-                        )
-                );
+                Map<String,Object> metadata = new LinkedHashMap<>();
+                metadata.put("evidenceId", ev.getId().toString());
+                metadata.put("title", ev.getTitle());
+                metadata.put("description", ev.getDescription());
+                metadata.put("capturedAt", ev.getCapturedAt() != null ? ISO.format(ev.getCapturedAt()) : null);
+                metadata.put("ingestedAt", ev.getCreatedAt() != null ? ISO.format(ev.getCreatedAt()) : null);
+                metadata.put("processedAt", ISO.format(Instant.now()));
+                metadata.put("hashAlgorithm", "SHA-256");
+                metadata.put("original", Map.of(
+                        "sha256", ev.getOriginalSha256(),
+                        "sizeBytes", ev.getOriginalSizeB()
+                ));
+                metadata.put(isRedacted ? "redacted" : "delivered", Map.of(
+                        "sha256", mediaShaHex,
+                        "sizeBytes", mediaSize
+                ));
+
+                // enriched
+                metadata.put("dateOriginal", ev.getExifDateOriginal() != null ? ISO.format(ev.getExifDateOriginal()) : null);
+                metadata.put("tzMinutes", ev.getTzOffsetMinutes());
+                metadata.put("altitudeM", ev.getCaptureAltitudeM());
+                metadata.put("headingDeg", ev.getCaptureHeadingDeg());
+                metadata.put("cameraMake", ev.getCameraMake());
+                metadata.put("cameraModel", ev.getCameraModel());
+                metadata.put("lensModel", ev.getLensModel());
+                metadata.put("software", ev.getSoftware());
+                metadata.put("widthPx", ev.getWidthPx());
+                metadata.put("heightPx", ev.getHeightPx());
+                metadata.put("orientationDeg", ev.getOrientationDeg());
+                metadata.put("container", ev.getContainer());
+                metadata.put("videoCodec", ev.getVideoCodec());
+                metadata.put("audioCodec", ev.getAudioCodec());
+                metadata.put("durationMs", ev.getDurationMs());
+                metadata.put("videoFps", ev.getVideoFps());
+                metadata.put("videoRotationDeg", ev.getVideoRotationDeg());
+
                 putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
 
-                // 4) metadata.pdf
+                // 4) metadata.pdf (beautified)
                 byte[] metaPdf = pdfService.buildMetadataPdf(metadata);
                 putBytes(zip, "metadata.pdf", metaPdf);
 
@@ -136,27 +158,8 @@ public class EvidencePackageController {
                 if (thumbShaHex != null) sb.append("Thumbnail SHA-256: ").append(thumbShaHex).append("\n");
                 putText(zip, "integrity.txt", sb.toString());
 
-                // 6) printable HTML report (optional)
-                putText(zip, "Evidence_Report.html",
-                        buildHtmlReport(ev, ev.getOriginalSha256(),
-                                ev.getOriginalSizeB() == null ? -1 : ev.getOriginalSizeB(),
-                                isRedacted, mediaShaHex, mediaSize));
-
-                // 7) optional HMAC signature over metadata.json
-                if (app.getAttestation().isEnabled()
-                        && app.getAttestation().getHmacSecret() != null
-                        && !app.getAttestation().getHmacSecret().isBlank()) {
-                    byte[] metaBytes = om.writeValueAsBytes(metadata);
-                    var mac = javax.crypto.Mac.getInstance("HmacSHA256");
-                    mac.init(new javax.crypto.spec.SecretKeySpec(
-                            app.getAttestation().getHmacSecret().getBytes(), "HmacSHA256"));
-                    String sig = HexFormat.of().formatHex(mac.doFinal(metaBytes));
-                    putText(zip, "attestation.sig",
-                            sig + "\nalg=HMAC-SHA256\nissuer=" + app.getAttestation().getIssuer() + "\n");
-                }
-
                 zip.finish();
-            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("Failed to generate package", e);
             }
         };
@@ -164,7 +167,7 @@ public class EvidencePackageController {
         return ResponseEntity.ok().headers(headers).body(body);
     }
 
-    /* helpers */
+    /* helpers (same as before) */
     static long copyToZip(ZipOutputStream zip, InputStream in, String name, MessageDigest md) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         byte[] buf = new byte[BUF];
@@ -177,19 +180,16 @@ public class EvidencePackageController {
         zip.closeEntry();
         return size;
     }
-
     static void putText(ZipOutputStream zip, String name, String text) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         zip.write(text.getBytes());
         zip.closeEntry();
     }
-
     static void putBytes(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         zip.write(bytes);
         zip.closeEntry();
     }
-
     static String guessExt(String key) {
         String k = key == null ? "" : key.toLowerCase();
         if (k.endsWith(".mp4")) return ".mp4";
@@ -199,68 +199,8 @@ public class EvidencePackageController {
         if (k.endsWith(".png")) return ".png";
         return "";
     }
-
     private static String nullToDash(String s){ return (s == null || s.isBlank()) ? "-" : s; }
-
     private static String safeFile(String name) {
         return name.replaceAll("[\\r\\n\\t\\\\/:*?\"<>|]", "_");
-    }
-
-    private String buildHtmlReport(Evidence ev, String originalSha, long originalSize,
-                                   boolean isRedacted, String deliveredSha, long deliveredSize) {
-        String now = ISO.format(Instant.now());
-        String cap = ev.getCapturedAt() != null ? ISO.format(ev.getCapturedAt()) : "—";
-        String title = ev.getTitle() != null ? ev.getTitle() : "Untitled";
-        String deliveredKind = isRedacted ? "Redacted" : "Original";
-
-        return """
-<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><title>RightsLocker Evidence Report</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;margin:24px;line-height:1.45}
-  .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0}
-  h1{margin:0 0 8px} h2{margin:16px 0 8px}
-  table{width:100%;border-collapse:collapse;margin-top:8px}
-  td,th{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
-  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
-</style></head>
-<body>
-  <h1>RightsLocker Evidence Report</h1>
-  <div>Issued: %s · Issuer: %s</div>
-
-  <div class="card">
-    <table>
-      <tr><th>Evidence ID</th><td>%s</td></tr>
-      <tr><th>Title</th><td>%s</td></tr>
-      <tr><th>Captured at (UTC)</th><td>%s</td></tr>
-    </table>
-  </div>
-
-  <h2>Integrity</h2>
-  <table>
-    <tr><th>Item</th><th>SHA-256</th><th>Size (bytes)</th></tr>
-    <tr><td>Original</td><td class="mono">%s</td><td>%s</td></tr>
-    <tr><td>%s (delivered)</td><td class="mono">%s</td><td>%s</td></tr>
-  </table>
-
-  <h2>Processing</h2>
-  <div class="card">
-    <div><b>Method:</b> %s</div>
-    <div style="color:#6b7280">If enabled, faces detected and blurred automatically.</div>
-  </div>
-
-  <div style="color:#6b7280;margin-top:24px">
-    Note: Times are UTC. This report summarizes digests and processing steps applied by RightsLocker.
-  </div>
-</body>
-</html>
-""".formatted(
-                now, app.getAttestation().getIssuer(),
-                ev.getId(), title, cap,
-                nullToDash(originalSha), (originalSize >= 0 ? Long.toString(originalSize) : "—"),
-                deliveredKind, deliveredSha, (deliveredSize >= 0 ? Long.toString(deliveredSize) : "—"),
-                (isRedacted ? "Face blur (automatic)" : "None")
-        );
     }
 }

@@ -82,7 +82,56 @@ public class Evidence {
         if (this.status == null) this.status = EvidenceStatus.RECEIVED;
     }
     @PreUpdate void onUpdate(){ this.updatedAt = Instant.now(); }
+    @Column(name = "exif_date_original")
+    private Instant exifDateOriginal;
 
+    @Column(name = "tz_offset_minutes")
+    private Integer tzOffsetMinutes;
+
+    @Column(name = "capture_altitude_m")
+    private Double captureAltitudeM;
+
+    @Column(name = "capture_heading_deg")
+    private Double captureHeadingDeg;
+
+    @Column(name = "camera_make")
+    private String cameraMake;
+
+    @Column(name = "camera_model")
+    private String cameraModel;
+
+    @Column(name = "lens_model")
+    private String lensModel;
+
+    @Column(name = "software")
+    private String software;
+
+    @Column(name = "width_px")
+    private Integer widthPx;
+
+    @Column(name = "height_px")
+    private Integer heightPx;
+
+    @Column(name = "orientation_deg")
+    private Integer orientationDeg;
+
+    @Column(name = "container")
+    private String container;
+
+    @Column(name = "video_codec")
+    private String videoCodec;
+
+    @Column(name = "audio_codec")
+    private String audioCodec;
+
+    @Column(name = "duration_ms")
+    private Long durationMs;
+
+    @Column(name = "video_fps")
+    private Double videoFps;
+
+    @Column(name = "video_rotation_deg")
+    private Integer videoRotationDeg;
     public void setRedactedSizeB(Long outputSizeB) {
     }
 }

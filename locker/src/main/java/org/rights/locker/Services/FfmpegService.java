@@ -49,4 +49,5 @@ public class FfmpegService {
         if (p.waitFor() != 0) throw new IOException("ffmpeg thumbnail failed");
         return jpgOut;
     }
+
 }

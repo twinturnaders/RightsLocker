@@ -1,0 +1,22 @@
+.wrap{ max-width:1100px; margin:24px auto; padding:0 16px }
+.hdr{ display:flex; align-items:center; gap:12px }
+.hdr h1{ margin:0 0 12px 0 }
+.link{ color:var(--brand, #a7725d); text-decoration:none }
+
+.grid{ display:grid; grid-template-columns: 420px 1fr; gap:16px; align-items:start }
+@media (max-width: 900px){ .grid{ grid-template-columns: 1fr } }
+
+.thumb{ width:100%; height:auto; border-radius:12px; border:1px solid #e5e7eb; background:#f8fafb }
+
+.card{ border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#fff; margin-top:12px }
+.muted{ color:#6b7280 }
+.kv{ width:100%; border-collapse:collapse; font-size:14px }
+.kv th, .kv td{ text-align:left; padding:6px 6px; border-bottom:1px solid #f0f2f4; vertical-align:top }
+.kv th{ color:#4b5563; width:190px }
+
+.chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+.chip{ font-size:12px; padding:4px 8px; border-radius:999px; background:#e5e7eb; color:#374151 }
+.chip.ok{ background:#d1fae5; color:#065f46 }
+.chip.warn{ background:#fef3c7; color:#92400e }
+.chip.danger{ background:#fee2e2; color:#991b1b }
+.mono{ font-family: ui-monospace,SFMono-Regular,Consolas,monospace }

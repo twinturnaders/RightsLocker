@@ -1,49 +1,56 @@
-import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
-import { DatePipe, NgIf } from '@angular/common';
-import { Evidence, EvidenceApi } from '../../../core/evidence.service';
-import {environment} from '../../../../environments/environment';
+import { Component, inject, signal, computed } from '@angular/core';
+import {AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe} from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { EvidenceApi, Evidence} from '../../../core/evidence.service';
+
+import { switchMap } from 'rxjs/operators';
+import { BytesPipe} from '../../../core/pipes/bytes.pipe';
+import { DurationMsPipe} from '../../../core/pipes/duration.pipe';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [NgIf, DatePipe],
+  imports: [NgIf, NgFor, RouterLink, AsyncPipe, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe],
   templateUrl: './evidence-detail.component.html',
+  styleUrls: ['./evidence-detail.component.css']
 })
-export class EvidenceDetailComponent implements OnChanges {
+export class EvidenceDetailComponent {
+  private route = inject(ActivatedRoute);
   private api = inject(EvidenceApi);
-  private base = `${environment.apiBase}`;
-  @Input() id?: string;
-  e?: Evidence;
-  loading = false;
-  error = '';
 
-  ngOnChanges(ch: SimpleChanges) {
-    if (ch['id'] && this.id) this.fetch(this.id);
-  }
+  evidence = signal<Evidence | null>(null);
+  loading = signal(true);
+  error = signal<string>('');
 
-  fetch(id: string) {
-    this.loading = true; this.error = '';
-    this.api.get(id).subscribe({
-      next: ev => { this.e = ev; this.loading = false; },
-      error: err => { this.error = err?.error?.message || err.statusText || 'Failed to load'; this.loading = false; }
+  ngOnInit(){
+    this.route.paramMap.pipe(
+      switchMap(p => this.api.get(p.get('id')!))
+    ).subscribe({
+      next: ev => { this.evidence.set(ev); this.loading.set(false); },
+      error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }
     });
   }
 
-  toggleHold(evt: Event) {
-    if (!this.e) return;
-    const checked = (evt.target as HTMLInputElement).checked;
-    this.api.setLegalHold(this.e.id, checked).subscribe({
-      next: ev => this.e = ev,
-      error: _ => { (evt.target as HTMLInputElement).checked = !checked; }
-    });
+  thumbSrc = computed(() => {
+    const ev = this.evidence();
+    if (!ev) return null;
+    if (ev.thumbnailKey) return this.api.thumbUrlByKey(ev.thumbnailKey);
+    return this.api.thumbUrlById(ev.id);
+  });
+
+  dimLabel(ev: Evidence){
+    if (ev.widthPx && ev.heightPx) return `${ev.widthPx} × ${ev.heightPx}px`;
+    return '—';
   }
 
-  thumbUrl(): string | undefined {
-    return this.e?.id ? `${this.base}/evidence/thumb?id=${this.e.id}` : undefined;
+  tzLabel(mins?: number | null){
+    if (mins == null) return '—';
+    const sign = mins >= 0 ? '+' : '-';
+    const m = Math.abs(mins);
+    const hh = Math.floor(m/60).toString().padStart(2,'0');
+    const mm = (m%60).toString().padStart(2,'0');
+    return `UTC${sign}${hh}:${mm}`;
   }
 
-  download(type: 'redacted'|'thumbnail'|'original' = 'redacted') {
-    if (!this.e) return;
-    this.api.download(this.e.id, type).subscribe(({ url }) => window.open(url, '_blank'));
-  }
+  hasVideo(ev: Evidence){ return !!(ev.container && (ev.videoCodec || ev.durationMs)); }
 }
