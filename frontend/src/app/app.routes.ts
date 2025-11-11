@@ -1,13 +1,15 @@
 import { Routes, provideRouter } from '@angular/router';
 import {EvidencePageComponent} from './features/evidence/evidence-page/evidence-page.component';
 import {HomeComponent} from './features/home/home.component';
+import {PrivacyComponent} from './features/legal/privacy/privacy.component';
 
 
 export const routes: Routes = [
   { path:'', pathMatch:'full', redirectTo:'home' },
   {path: 'home', loadComponent:()=>import('./features/home/home.component').then(m => m.HomeComponent)},
   { path:'upload', loadComponent:()=>import('./features/anon-upload/anon-upload.component').then(m=>m.AnonComponent) },
-
+  { path: 'legal/privacy', loadComponent:()=>import('./features/legal/privacy/privacy.component').then(m=>m.PrivacyComponent) },
+  { path: 'legal/terms', loadComponent:()=>import('./features/legal/tos/tos.component').then(m=>m.TosComponent) },
   { path:'convert', loadComponent:()=>import('./features/evidence/convert/convert.component').then(m=>m.ConvertComponent) },
   { path:'about', loadComponent:()=>import('./features/about/about.component').then(m=>m.AboutComponent) },
 // keep your existing protected routes below (evidence, upload, detail)
