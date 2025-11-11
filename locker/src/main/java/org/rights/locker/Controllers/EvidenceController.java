@@ -240,6 +240,38 @@ public class EvidenceController {
                 ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF, Map.of());
         return ev;
     }
+    @DeleteMapping("/{id}")
+    public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        var ev = evidenceRepo.findByIdAndOwner(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (Boolean.TRUE.equals(ev.getLegalHold())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Evidence is on legal hold and cannot be deleted.");
+        }
+
+        try { custody.record(ev, user, CustodyEventType.DELETED, Map.of()); } catch (Exception ignore) {}
+
+
+        jobRepo.deleteByEvidenceId(ev.getId());
+        shareService.deleteByEvidenceId(ev.getId());
+
+        // delete S3 blobs (ignore missing keys)
+        deleteQuiet(bucketOriginals, ev.getOriginalKey());
+        deleteQuiet(bucketHot, ev.getRedactedKey());
+        deleteQuiet(bucketHot, ev.getThumbnailKey());
+        deleteQuiet(bucketHot, ev.getDerivativeKey());
+
+        // finally remove the evidence row
+        evidenceRepo.delete(ev);
+    }
+
+    private void deleteQuiet(String bucket, String key) {
+        if (key == null || key.isBlank()) return;
+        try { s3.deleteObject(b -> b.bucket(bucket).key(key)); }
+        catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException ignored) {}
+        catch (Exception e) { log.warn("S3 delete failed for {}/{}: {}", bucket, key, e.toString()); }
+    }
 
     /* helpers */
     private static Instant parseInstant(String iso) {

@@ -2,10 +2,22 @@
   <div class="hdr">
     <a routerLink="/evidence" class="link">&larr; Back to list</a>
     <h1>Evidence details</h1>
+
+    <ng-container *ngIf="!loading() && evidence() as ev">
+      <button
+        class="btn danger"
+        [disabled]="deleting() || !canDelete(ev)"
+        (click)="onDelete(ev)"
+        title="{{ canDelete(ev) ? 'Delete evidence' : 'Deletion disabled while on legal hold' }}">
+        <span *ngIf="!deleting()">Delete</span>
+        <span *ngIf="deleting()">Deleting…</span>
+      </button>
+    </ng-container>
   </div>
 
   <div *ngIf="loading()">Loading…</div>
   <div *ngIf="error()">{{ error() }}</div>
+
   <ng-container *ngIf="!loading() && evidence() as ev">
     <div class="grid">
       <div class="left">

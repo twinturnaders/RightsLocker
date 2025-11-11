@@ -65,7 +65,11 @@ import java.util.UUID;
                 var t = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
                 if (!repo.existsByToken(t)) return t;
             }
-            // Extremely unlikely fallback
             return UUID.randomUUID().toString().replace("-", "");
+        }
+
+
+        public void deleteByEvidenceId(UUID evidenceId) {
+            repo.deleteByEvidenceId(evidenceId);
         }
     }

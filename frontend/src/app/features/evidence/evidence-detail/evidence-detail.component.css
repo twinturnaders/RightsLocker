@@ -1,0 +1,20 @@
+.hdr {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.hdr h1 { margin: 0; }
+
+.btn.danger {
+  background: #fee2e2;           /* red-100 */
+  color: #991b1b;                /* red-800 */
+  border-color: #fecaca;         /* red-200 */
+}
+.btn.danger:hover { background: #fecaca; } /* red-200 */
+.btn.danger:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}

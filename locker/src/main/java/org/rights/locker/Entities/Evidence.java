@@ -65,6 +65,7 @@ public class Evidence {
     @Column(nullable = true, name = "redacted_key")
     private String redactedKey;
 
+    @Column(name = "redacted_size")
     private Long redactedSize;
     @Column(nullable = false, name= "legal_hold")
     private boolean legalHold;
@@ -133,5 +134,9 @@ public class Evidence {
     @Column(name = "video_rotation_deg")
     private Integer videoRotationDeg;
     public void setRedactedSizeB(Long outputSizeB) {
+    }
+
+    public Boolean getLegalHold() {
+        return this.legalHold;
     }
 }

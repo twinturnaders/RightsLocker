@@ -1,0 +1,1 @@
+ALTER TYPE custody_event_type ADD VALUE IF NOT EXISTS 'DELETED';
