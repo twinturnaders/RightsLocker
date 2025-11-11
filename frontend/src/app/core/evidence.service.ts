@@ -77,22 +77,22 @@ export class EvidenceApi {
   }
 
   get(id: string): Observable<Evidence> {
-    return this.http.get<Evidence>(`/${this.base}/${id}`);
+    return this.http.get<Evidence>(`${this.base}/${id}`);
   }
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`/${this.base}/${id}/legal-hold`, { legalHold });
+    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
     const params = new HttpParams().set('type', type);
-    return this.http.get<{ url: string }>(`/${this.base}/${id}/download`, { params });
+    return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
   }
 
   presignUpload(filename: string, contentType: string) {
     return this.http.post<{ key: string; url: string; headers: Record<string, string | string[]> }>(
-      `/${this.base}/presign-upload`,
+      `${this.base}/presign-upload`,
       { filename, contentType }
     );
   }
@@ -102,7 +102,7 @@ export class EvidenceApi {
     capturedAtIso?: string; lat?: number; lon?: number; accuracy?: number;
     redactMode?: 'BLUR' | 'NONE';                // NEW
   }) {
-    return this.http.post<FinalizeResponse>(`/${this.base}/finalize`, payload);
+    return this.http.post<FinalizeResponse>(`${this.base}/finalize`, payload);
   }
 
   // ----- Share (public) -----
@@ -116,10 +116,10 @@ export class EvidenceApi {
         capturedAt?: string; status: string; hasRedacted: boolean; hasThumb: boolean;
       };
       links: { redactedUrl?: string|null; originalUrl?: string|null; thumbUrl?: string|null }
-    }>(`/${environment.apiBase}/share/${token}`);
+    }>(`${environment.apiBase}/share/${token}`);
   }
 
-  thumbUrlById(id: string){ return `/${this.base}/thumb?id=${id}`; }
-  thumbUrlByKey(key: string){ return `/${this.base}/thumb?key=${encodeURIComponent(key)}`; }
+  thumbUrlById(id: string){ return `${this.base}/thumb?id=${id}`; }
+  thumbUrlByKey(key: string){ return `${this.base}/thumb?key=${encodeURIComponent(key)}`; }
 
 }
