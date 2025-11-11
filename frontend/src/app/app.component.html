@@ -1,49 +1,66 @@
 <div class="app">
-  <!-- Header -->
-  <header class="topbar" role="banner">
-    <button class="iconbtn" aria-label="Toggle navigation" (click)="toggleSidebar()">
-      ☰
-    </button>
-<span></span>
-    <a class="brand" routerLink="/">
-      <img class="brand-logo" src="/Rights.png" alt="RightsLocker">
 
-    </a>
-    <div class="spacer"></div>
+     <header class="topbar">
+       <button class="menu-btn" aria-label="Toggle navigation" (click)="toggleSidebar()">
+         <span class="menu-icon">☰</span>
+       </button>
 
-    <form class="search" role="search" *ngIf="auth.isAuthed$ | async">
-      <input type="search" placeholder="Search evidence…" aria-label="Search evidence">
-    </form>
+       <a class="brand" routerLink="/" (click)="closeSidebar()">
+         <span class="brand-logo-bg" aria-hidden="true"></span>
 
-    <nav class="top-actions" aria-label="Account">
-      <a *ngIf="!(auth.isAuthed$ | async)" routerLink="/login" class="btn ghost">Login</a>
-      <button *ngIf="auth.isAuthed$ | async" class="btn ghost" (click)="auth.logout()">Logout</button>
-    </nav>
-  </header>
+       </a>
 
-  <!-- Layout -->
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" [class.open]="sidebarOpen()" aria-label="Primary">
-      <nav class="nav">
-        <a routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()">Convert</a>
-        <a *ngIf="auth.isAuthed$ | async" routerLink="/evidence" routerLinkActive="active" (click)="closeSidebar()">Evidence</a>
-        <a routerLink="/legal" routerLinkActive="active" (click)="closeSidebar()">Laws & Guidance</a>
-        <a routerLink="/about" routerLinkActive="active" (click)="closeSidebar()">About</a>
-      </nav>
+       <div class="spacer"></div>
 
-      <div class="sidebar-foot">
-        <p class="muted small">© 11/10/2025 RightsLocker</p>
-        <p class="small">
-          <a routerLink="/legal/terms">Terms</a> ·
-          <a routerLink="/legal/privacy">Privacy</a>
-        </p>
-      </div>
-    </aside>
+       <form class="search" *ngIf="auth.isAuthed$ | async" (submit)="$event.preventDefault()">
+         <input type="search" placeholder="Search evidence…" aria-label="Search evidence">
+       </form>
 
-    <!-- Main content -->
-    <main class="main" role="main">
-      <router-outlet></router-outlet>
-    </main>
-  </div>
+       <nav class="top-nav">
+         <a *ngIf="!(auth.isAuthed$ | async)" routerLink="/login" class="btn ghost">Login</a>
+         <button *ngIf="auth.isAuthed$ | async" class="btn ghost" (click)="auth.logout()">Logout</button>
+       </nav>
+     </header>
+
+     <!-- Overlay for mobile -->
+     <div class="overlay" [class.active]="sidebarOpen()" (click)="closeSidebar()" aria-hidden="true" ></div>
+
+   <!-- Layout -->
+   <div class="layout">
+       <!-- Sidebar -->
+       <aside class="sidebar" [class.open]="sidebarOpen()">
+         <nav class="nav">
+           <a routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()">
+             Convert
+           </a>
+           <a *ngIf="auth.isAuthed$ | async">
+              routerLink="/evidence"
+              routerLinkActive="active"
+              (click)="closeSidebar()">
+             Evidence
+           </a>
+           <a routerLink="/legal" routerLinkActive="active" (click)="closeSidebar()">
+             Laws & Guidance
+           </a>
+           <a routerLink="/about" routerLinkActive="active" (click)="closeSidebar()">
+             About
+           </a>
+         </nav>
+
+         <div class="sidebar-footer">
+           <p class="copyright">© 2025 RightsLocker</p>
+           <p class="links">
+             <a routerLink="/legal/terms" (click)="closeSidebar()">Terms</a>
+             <span>·</span>
+             <a routerLink="/legal/privacy" (click)="closeSidebar()">Privacy</a>
+           </p>
+         </div>
+       </aside>
+
+       <!-- Main content -->
+       <main class="main">
+         <router-outlet></router-outlet>
+       </main>
+     </div>
+
 </div>
