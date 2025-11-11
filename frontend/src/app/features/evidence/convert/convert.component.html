@@ -14,8 +14,12 @@
 <!--      <label class="label" style="margin:0">Check box to auto-blur faces</label>-->
 <!--      <input type="checkbox" [(ngModel)]="blur"/>-->
 <!--    </div>-->
-
-
+    <div>
+      <label class="label" style="margin:0">
+        <input type="checkbox" [(ngModel)]="hold" [disabled]="!auth.token" />
+        Enable Legal Hold (prevents 24 hour auto-deletion)-- Stored in hosted locker- Can be manually deleted from your account
+      </label>
+    </div>
 
     <!-- Progress bar -->
     <div class="bar" *ngIf="uploading">
