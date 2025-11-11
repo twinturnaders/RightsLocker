@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
-  <title id="title">RightsLocker Logo</title>
-  <desc id="desc">Padlock with camera lens and the wordmark RIGHTSLocker</desc>
+<svg>
+
 
   <!-- defs -->
   <defs>
@@ -37,8 +36,8 @@
   <!-- WORDMARK -->
   <g font-family="Inter, Segoe UI, Roboto, system-ui, -apple-system, Arial" transform="translate(240,40)">
     <!-- RIGHTS -->
-    <text x="0" y="95" font-size="76" font-weight="800" letter-spacing="1.5" fill="#1e2525">RIGHTS</text>
+    <text x="0" y="95" font-size="76" font-weight="800" letter-spacing="1.5" fill="#F6F7FBFF">RIGHTS</text>
     <!-- Locker -->
-    <text x="0" y="155" font-size="64" font-weight="600" fill="#b06c58">Locker</text>
+    <text x="0" y="155" font-size="64" font-weight="600" fill="#CBD5E1FF">Locker</text>
   </g>
 </svg>

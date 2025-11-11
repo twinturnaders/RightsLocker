@@ -1,21 +1,33 @@
 <div class="container">
   <div class="card">
     <h2 style="margin-top:0">About RightsLocker</h2>
-    <p>RightsLocker helps you preserve integrity and privacy of photo/video evidence. We compute cryptographic hashes, log custody events, and create redacted derivatives for safe sharing.</p>
-    <div class="grid grid-2">
+    <p>RightsLocker preserves the integrity and privacy of photo/video evidence.</p>
+
+    <h3>What happens when you upload</h3>
+    <ul>
+      <li><strong>Hashing (SHA-256):</strong> We compute a fingerprint for the original and each derivative. If even a single pixel changes, the hash changes.</li>
+      <li><strong>Chain of custody:</strong> We log timestamps, versions, and actions to create a tamper-evident trail.</li>
+      <li><strong>Transparent reporting:</strong> You can download a printable report listing files, sizes, hashes, and processing steps.</li>
+      <li><strong>Privacy tools:</strong> Metadata stripping and redaction are available by default.
+        <!-- Face-blur is planned; enable here when ready. -->
+        <!-- <em>Face-blur optional.</em> -->
+      </li>
+    </ul>
+
+    <h3>Ways to use it</h3>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
       <div>
-        <h3>Processing-only (default)</h3>
-        <p class="help">Upload, process, download a verifiable package. We auto-delete within 24 hours.</p>
+        <h4>Processing-only (default)</h4>
+        <p class="help">Upload → process → download. We auto-delete within 24 hours.</p>
       </div>
       <div>
-        <h3>Hosted Locker (opt-in)</h3>
-        <p class="help">We retain originals + derivatives per your retention policy. You can enable legal hold and share links. You should still keep your own copy.</p>
+        <h4>Hosted Locker (opt-in)</h4>
+        <p class="help">We retain originals + derivatives under your retention policy. You can enable legal hold and share links.</p>
       </div>
     </div>
-    <div class="kv" style="margin-top:12px">
-      <div>Integrity</div><div>SHA-256 digests of original and delivered files</div>
-      <div>Privacy</div><div>Automatic face-blur (toggleable) with conservative defaults</div>
-      <div>Transparency</div><div>Printable report with timestamps, versions, and hashes</div>
-    </div>
+
+    <h3>Plain-English definitions</h3>
+    <p><strong>Hash:</strong> a one-way, fixed-length fingerprint of a file. Matching SHA-256 hashes prove two files have identical contents.</p>
+    <p><strong>Chain of custody:</strong> a chronological log of how a file was handled. It helps others independently verify integrity.</p>
   </div>
 </div>

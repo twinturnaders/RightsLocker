@@ -1,9 +1,11 @@
 import { Routes, provideRouter } from '@angular/router';
 import {EvidencePageComponent} from './features/evidence/evidence-page/evidence-page.component';
+import {HomeComponent} from './features/home/home.component';
 
 
 export const routes: Routes = [
-  { path:'', pathMatch:'full', redirectTo:'upload' },
+  { path:'', pathMatch:'full', redirectTo:'home' },
+  {path: 'home', loadComponent:()=>import('./features/home/home.component').then(m => m.HomeComponent)},
   { path:'upload', loadComponent:()=>import('./features/anon-upload/anon-upload.component').then(m=>m.AnonComponent) },
 
   { path:'convert', loadComponent:()=>import('./features/evidence/convert/convert.component').then(m=>m.ConvertComponent) },
@@ -18,6 +20,6 @@ export const routes: Routes = [
   { path: 'evidence', component: EvidencePageComponent },
   { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.route-wrapper').then(m => m.EvidenceDetailRouteWrapper) },
   { path: 'convert', redirectTo: 'evidence' },
-  { path:'**', redirectTo:'upload' }
+  { path:'**', redirectTo:'home' }
 ];
 export const routingProviders=[provideRouter(routes)];

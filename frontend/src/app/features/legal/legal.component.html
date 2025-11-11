@@ -1,4 +1,3 @@
-
 <h2>Laws & Guidance</h2>
 <div class="tabs">
   <button [class.active]="tab()=='federal'" (click)="tab.set('federal')">Federal</button>
@@ -7,28 +6,50 @@
 
 <section *ngIf="tab()=='federal'">
   <div class="card">
-    <h3>Evidence Authentication & Chain of Custody</h3>
+    <h3>Evidence authentication & originals</h3>
     <ul>
-      <li>FRE 901 – Authenticating or Identifying Evidence</li>
-
-      <li>FRE 902(13)/(14) – Certified Records; Data Copied from Electronic Device</li>
-      <li>FRE 403 – Excluding Relevant Evidence (prejudice vs probative)</li>
-      <li>Rule 1002 – Requirement of the Original
-        <p>Pub. L. 93–595, §1, Jan. 2, 1975, 88 Stat. 1946; Apr. 26, 2011, eff. Dec. 1, 2011.</p></li>
-
+      <li><strong>FRE 901</strong> – Authentication/identification basics.</li>
+      <li><strong>FRE 902(13)/(14)</strong> – Self-authenticating electronic records / data copied from devices.</li>
+      <li><strong>FRE 1002</strong> – “Best evidence” rule; accurate digital duplicates usually qualify.</li>
     </ul>
-    <p class="note">Add citations/links later; this is a placeholder summary.</p>
+    <h3>Recording in public</h3>
+    <p>Multiple circuits recognize a First Amendment right to record public officials in public places, subject to reasonable limits.</p>
+    <p class="help">This is guidance only, not legal advice. Laws change; consult an attorney for your jurisdiction.</p>
   </div>
 </section>
 
-  <section *ngIf="tab()=='state'">
-    <select [(ngModel)]="q" (change)="onStateChange($event)">>
-      <option value="" disabled>Select a State</option>
-      <option *ngFor="let state  of states" [value]="state.code">{{ state.name }}</option>
-    </select>
-    <p>Selected State: {{ q }}</p>
-<div class="card">
-  <p class="muted">Add the specific statute/rule citations here (e.g., Evidence Rule 901 analogs, public records redaction rules, bodycam statutes).</p>
-</div>
+<section *ngIf="tab()=='state'">
+  <label class="label" for="state">Choose a state</label>
+  <select id="state" [(ngModel)]="q" (change)="onStateChange($event)">
+    <option value="" disabled selected>Select a State</option>
+    <option *ngFor="let state of states" [value]="state.code">{{ state.name }}</option>
+  </select>
 
-  </section>
+  <ng-container *ngIf="current() as s">
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">{{ s.name }}</h3>
+      <p *ngIf="s.notes?.recording"><strong>Consent rule:</strong> {{ s.notes?.recording }}</p>
+      <div *ngIf="s.notes?.statutes?.length">
+        <h4>Key statutes</h4>
+        <ul>
+          <li *ngFor="let st of s.notes!.statutes">
+            <a *ngIf="st.url" [href]="st.url" target="_blank" rel="noopener">{{ st.label }}</a>
+            <span *ngIf="!st.url">{{ st.label }}</span>
+            <span class="help"> — {{ st.cite }}</span>
+          </li>
+        </ul>
+      </div>
+      <div *ngIf="s.notes?.cases?.length">
+        <h4>Notable cases</h4>
+        <ul>
+          <li *ngFor="let c of s.notes!.cases">
+            <a *ngIf="c.url" [href]="c.url" target="_blank" rel="noopener">{{ c.name }}</a>
+            <span *ngIf="!c.url">{{ c.name }}</span>
+            <span *ngIf="c.cite" class="help"> — {{ c.cite }}</span>
+          </li>
+        </ul>
+      </div>
+      <p class="help">Verify locally; this is informational, not legal advice.</p>
+    </div>
+  </ng-container>
+</section>

@@ -1,25 +1,49 @@
-<div class="layout">
-  <aside class="sidebar">
+<div class="app">
+  <!-- Header -->
+  <header class="topbar" role="banner">
+    <button class="iconbtn" aria-label="Toggle navigation" (click)="toggleSidebar()">
+      ☰
+    </button>
+<span></span>
+    <a class="brand" routerLink="/">
+      <img class="brand-logo" src="/Rights.png" alt="RightsLocker">
 
-    <nav>
+    </a>
+    <div class="spacer"></div>
 
-      <nav>
-        <span><img src="/logo.svg"></span>
-        <a *ngIf="!(auth.isAuthed$ | async)" routerLink="/upload" routerLinkActive="active">Convert</a>
-        <a *ngIf="auth.isAuthed$ | async" routerLink="/evidence" routerLinkActive="active">Evidence</a>
-      </nav>
-      <a routerLink="/legal" routerLinkActive="active">Laws & Guidance</a>
-      <a routerLink="/about" routerLinkActive="active">About</a>
+    <form class="search" role="search" *ngIf="auth.isAuthed$ | async">
+      <input type="search" placeholder="Search evidence…" aria-label="Search evidence">
+    </form>
+
+    <nav class="top-actions" aria-label="Account">
+      <a *ngIf="!(auth.isAuthed$ | async)" routerLink="/login" class="btn ghost">Login</a>
+      <button *ngIf="auth.isAuthed$ | async" class="btn ghost" (click)="auth.logout()">Logout</button>
     </nav>
-  </aside>
+  </header>
 
-  <section class="main">
-    <header class="topbar">
-      <input *ngIf="auth.isAuthed$ | async" placeholder="Search evidence…" />
-      <div class="spacer"></div>
-      <button *ngIf="!(auth.isAuthed$ | async)" routerLink="/login" routerLinkActive="active">Login</button>
-      <button *ngIf="auth.isAuthed$ | async" (click)="auth.logout()">Logout</button>
-    </header>
-    <div class="content"><router-outlet></router-outlet></div>
-  </section>
+  <!-- Layout -->
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" [class.open]="sidebarOpen()" aria-label="Primary">
+      <nav class="nav">
+        <a routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()">Convert</a>
+        <a *ngIf="auth.isAuthed$ | async" routerLink="/evidence" routerLinkActive="active" (click)="closeSidebar()">Evidence</a>
+        <a routerLink="/legal" routerLinkActive="active" (click)="closeSidebar()">Laws & Guidance</a>
+        <a routerLink="/about" routerLinkActive="active" (click)="closeSidebar()">About</a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <p class="muted small">© 11/10/2025 RightsLocker</p>
+        <p class="small">
+          <a routerLink="/legal/terms">Terms</a> ·
+          <a routerLink="/legal/privacy">Privacy</a>
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main" role="main">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>
