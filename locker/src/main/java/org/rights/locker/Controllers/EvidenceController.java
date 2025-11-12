@@ -1,5 +1,6 @@
 package org.rights.locker.Controllers;
 
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.DTOs.FinalizeResponse;
@@ -20,7 +21,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -228,17 +231,32 @@ public class EvidenceController {
     /* legal hold toggle (auth only) */
     public record LegalHoldReq(boolean legalHold) {}
     @PostMapping("/{id}/legal-hold")
-    public Evidence setLegalHold(@PathVariable UUID id,
-                                 @RequestBody LegalHoldReq body,
-                                 @AuthenticationPrincipal AppUser user) {
+    @Transactional
+    public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
+                                             @RequestBody LegalHoldReq body,
+                                             @AuthenticationPrincipal AppUser user) {
+
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        if (body == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "legalHold is required");
+        }
+
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
         ev.setLegalHold(body.legalHold());
-        ev = evidenceRepo.save(ev);
-        custody.record(ev, user, body.legalHold()
-                ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF, Map.of());
-        return ev;
+        ev.setUpdatedAt(Instant.now());
+        evidenceRepo.save(ev);
+
+        custody.record(
+                ev,
+                user,
+                body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,
+                Map.of()
+        );
+
+        // 204 avoids any Jackson serialization issues
+        return ResponseEntity.noContent().build();
     }
     @DeleteMapping("/{id}")
     public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
