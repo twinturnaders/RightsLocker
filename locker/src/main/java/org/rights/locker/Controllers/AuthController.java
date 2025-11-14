@@ -13,6 +13,8 @@ import org.rights.locker.Repos.UserSessionRepo;
 import org.rights.locker.Security.CurrentUser;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.AuthService;
+import org.rights.locker.Services.TokenService;
+import org.rights.locker.Services.UserSessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,18 +36,36 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
     private final AuthService authService;
+    private final TokenService tokenService;
     private final JwtService jwtService;
     private final AppUserRepo userRepo;
+    private final UserSessionRepo userSessionRepo;
+    private final UserSessionService userSessionService;
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req) {
         AppUser user = authService.loginAndReturnUser(req.email(), req.password());
         String sub = user.getId().toString();
-        return ResponseEntity.ok(new TokenResponse(
-                jwtService.issueAccessToken(sub),
+        String token = jwtService.issueAccessToken(sub);
+        userSessionService.createUserSession(user, token);
+         return ResponseEntity.ok(new TokenResponse(
+                token,
                 jwtService.issueRefreshToken(sub)
         ));
+
+
+
     }
+    @PostMapping("/logout")
+    public void logout(@RequestHeader("Authorization") String authorizationHeader) {
+       String jwtToken = tokenService.getToken(authorizationHeader);
+            UserSession session = userSessionRepo.findByJwtId(jwtToken);
+            if (session != null) {
+                session.setExpiresAt(Instant.now());
+            }
+        }
+
+
 
     @PostMapping("/register")
     public ResponseEntity<TokenResponse> register(@Valid @RequestBody RegisterRequest req) {

@@ -1,10 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, catchError, map, of, switchMap, tap } from 'rxjs';
+import {BehaviorSubject, catchError, map, of, pipe, switchMap, tap} from 'rxjs';
 import { environment } from '../../environments/environment';
 
 
-interface LoginRes{ accessToken:string }
+interface LoginRes{ accessToken:string, email:string }
 interface RegisterReq{ email:string; password:string; displayName:string }
 interface LoginRequest { email: string; password: string; }
 
@@ -15,12 +15,16 @@ export class AuthService{
 
 
   isAuthed$=this._token$.pipe(map(t=>!!t));
-  get token(){return this._token$.value} set token(v){this._token$.next(v)}
+  get token(){return this._token$.value}
+  set token(v){this._token$.next(v)}
+
 
 
   login(email:string,password:string){
+
     return this.http.post<LoginRes>(`${environment.apiBase}/auth/login`,{email,password},{withCredentials:true})
-      .pipe(tap(r=>this.token=r.accessToken));
+      .pipe(tap(r=>this.token=r.accessToken))
+
   }
   register(email:string,password:string,displayName:string){
     const body: RegisterReq={email,password,displayName};

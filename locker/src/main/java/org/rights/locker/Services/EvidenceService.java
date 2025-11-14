@@ -3,14 +3,17 @@ package org.rights.locker.Services;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
 import org.rights.locker.Enums.CustodyEventType;
 import org.rights.locker.Enums.EvidenceStatus;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
+import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ProcessingJobRepo;
+import org.rights.locker.Security.UserPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class EvidenceService {
     private final CustodyService custody;
     private final GeometryFactory gf = new GeometryFactory();
     private final S3Presigner s3Presigner;
+    private final AppUserRepo appUserRepo;
 
     public Evidence upload(MultipartFile file, String title, String description, java.time.Instant capturedAt, Double lat, Double lon, Double accuracy){
         try (InputStream in = file.getInputStream()){
@@ -51,6 +56,7 @@ public class EvidenceService {
             }
 
             var ev = Evidence.builder()
+
                     .title(title).description(description)
                     .capturedAt(capturedAt)
                     .captureLatlon(point)
@@ -78,8 +84,15 @@ public class EvidenceService {
         }
     }
 
-    public Page<Evidence> list(EvidenceStatus status, Pageable pageable){
-        return (status == null) ? repo.findAll(pageable) : repo.findByStatus(status, pageable);
+    public Page<Evidence> list(UserPrincipal owner, Pageable pageable){
+        UUID ownerId = owner.getId();
+        AppUser user = appUserRepo.findById(ownerId).orElse(null);
+        if (user != null) {
+            return repo.findByOwner(user, pageable);
+        }
+        else{
+            return null;
+        }
     }
 
     public String getKey(Optional<Evidence> item) {

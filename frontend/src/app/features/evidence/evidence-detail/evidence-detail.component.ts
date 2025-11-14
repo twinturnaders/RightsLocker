@@ -12,7 +12,7 @@ import { AuthService } from '../../../core/auth.service';
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [NgIf, NgFor, RouterLink, AsyncPipe, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe],
+  imports: [NgIf, RouterLink, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe],
   templateUrl: './evidence-detail.component.html',
   styleUrls: ['./evidence-detail.component.css']
 })

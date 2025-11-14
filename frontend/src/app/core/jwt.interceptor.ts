@@ -10,7 +10,9 @@ export class JwtInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.auth.token;
+
     const authedReq = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+
 
     return next.handle(authedReq).pipe(
       catchError((err: HttpErrorResponse) => {

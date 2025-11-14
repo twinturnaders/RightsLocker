@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 
 @ConfigurationProperties(prefix = "jwt")
 @Validated
+
 public record JwtProps(
         // ③ These names map from kebab-case in YAML (e.g., access-ttl-seconds)
         @NotBlank String issuer,

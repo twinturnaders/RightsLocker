@@ -3,6 +3,8 @@ package org.rights.locker.Security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
+import org.rights.locker.Repos.UserSessionRepo;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -11,16 +13,21 @@ import java.time.Instant;
 import java.util.Date;
 
 @Service
+@Getter
 public class JwtService {
 
     private final JwtProps props;
     private final SecretKey key;
+    private final UserSessionRepo sessionRepo;
 
-    public JwtService(JwtProps props) {
+    public JwtService(JwtProps props, UserSessionRepo sessionRepo) {
         this.props = props;
         // HS256 wants at least 256-bit secret; ensure your secret is long enough
         this.key = Keys.hmacShaKeyFor(props.secret().getBytes(StandardCharsets.UTF_8));
+        this.sessionRepo = sessionRepo;
     }
+
+
 
     public String issueAccessToken(String subject) {
         Instant now = Instant.now();

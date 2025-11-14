@@ -2,15 +2,18 @@ package org.rights.locker.Services;
 
 
 import lombok.RequiredArgsConstructor;
-import org.apache.catalina.User;
-import org.rights.locker.DTOs.TokenResponse;
 import org.rights.locker.Entities.AppUser;
+import org.rights.locker.Entities.UserSession;
 import org.rights.locker.Enums.Role;
 import org.rights.locker.Repos.AppUserRepo;
+import org.rights.locker.Repos.UserSessionRepo;
+import org.rights.locker.Security.JwtService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 
 @Service
@@ -18,6 +21,9 @@ import java.util.Optional;
 public class AuthService {
     private final AppUserRepo users;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private final UserSessionRepo userSessionRepo;
+    private final JwtService jwtService;
+    UserSession userSession;
 
     public AppUser register(String email, String password, String displayName) {
         var user = AppUser.builder()
@@ -33,6 +39,15 @@ public class AuthService {
         var user = users.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (!encoder.matches(password, user.getPasswordHash()))
             throw new IllegalArgumentException("Invalid credentials");
+        var expires = Instant.now().plus(1, ChronoUnit.HOURS);
+        UserSession userSession = new UserSession(null, user, jwtService.getKey().toString(), Instant.now(), expires  );
+        userSessionRepo.save(userSession);
         return user;
+
+    }
+
+    public void logout(UUID id){
+        var user = users.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
     }
 }

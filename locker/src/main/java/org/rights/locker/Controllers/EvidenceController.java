@@ -1,6 +1,5 @@
 package org.rights.locker.Controllers;
 
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.DTOs.FinalizeResponse;
@@ -13,13 +12,17 @@ import org.rights.locker.Enums.EvidenceStatus;
 import org.rights.locker.Enums.JobStatus;
 import org.rights.locker.Enums.JobType;
 
+import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.MetadataService;
 import org.rights.locker.Repos.ProcessingJobRepo;
+import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,7 +31,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -39,11 +41,14 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+
+
 
 @Slf4j
 @RestController
-@RequestMapping("/api/evidence")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class EvidenceController {
 
@@ -56,30 +61,27 @@ public class EvidenceController {
     private final StorageService storage;
     private final ShareService shareService;
   private final MetadataService metadataService;
+  private final AppUserRepo appUserRepo;
+    private final EvidenceService evidenceService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    /* auth-only list */
-    @GetMapping
-    public Page<Evidence> list(@RequestParam(defaultValue="0") int page,
-                               @RequestParam(defaultValue="20") int size,
-                               @AuthenticationPrincipal AppUser current) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        return evidenceRepo.findAllByOwner(current, PageRequest.of(page, size));
-    }
+    @GetMapping("/api/evidence")
+    public ResponseEntity<?> listOrGet(@AuthenticationPrincipal UserPrincipal user,
+                                       @PageableDefault(sort ="createdAt")Pageable pageable,
+                                       @RequestParam(defaultValue="0") int page,
+                                       @RequestParam(defaultValue="20") int size){
 
-    /* auth-only get */
-    @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        return evidenceRepo.findByIdAndOwner(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-    }
 
+        if (user != null) {
+            return ResponseEntity.ok(evidenceService.list(user, pageable));
+        }
+        return null;
+    }
     /* presign upload (public) */
     public record PresignUploadReq(String filename, String contentType) {}
-    @PostMapping("/presign-upload")
+    @PostMapping("/evidence/presign-upload")
     public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
         String safeName = (req.filename() == null ? "file.bin" : req.filename())
                 .replaceAll("[^a-zA-Z0-9._-]", "_");
@@ -105,7 +107,7 @@ public class EvidenceController {
             String redactMode
     ){}
 
-    @PostMapping("/finalize")
+    @PostMapping("/evidence/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal AppUser currentUser) throws Exception {
 
@@ -201,7 +203,7 @@ public class EvidenceController {
     }
 
     /* presigned GET per type (auth only) */
-    @GetMapping("/{id}/download")
+    @GetMapping("/evidence/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
                                        @RequestParam(defaultValue = "original") String type,
                                        @AuthenticationPrincipal AppUser user) {
@@ -230,7 +232,7 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
     public record LegalHoldReq(boolean legalHold) {}
-    @PostMapping("/{id}/legal-hold")
+    @PostMapping("/evidence/{id}/legal-hold")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @RequestBody LegalHoldReq body,
@@ -258,7 +260,7 @@ public class EvidenceController {
         // 204 avoids any Jackson serialization issues
         return ResponseEntity.noContent().build();
     }
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/evidence/{id}")
     public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         var ev = evidenceRepo.findByIdAndOwner(id, user)

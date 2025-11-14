@@ -22,4 +22,6 @@ public class CurrentUserService {
        Optional<AppUser> user = userRepo.findById(UUID.fromString(id));
        return user.orElse(null);
    }
+
+
 }
