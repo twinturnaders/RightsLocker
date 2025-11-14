@@ -19,8 +19,6 @@ import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -41,7 +39,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -230,29 +227,30 @@ public class EvidenceController {
     }
 
     /* legal hold toggle (auth only) */
-    public record LegalHoldReq(boolean legalHold) {}
+
     @PostMapping("/evidence/{id}/legal-hold")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @RequestBody LegalHoldReq body,
+                                             @RequestParam boolean legalHold,
                                              @AuthenticationPrincipal AppUser user) {
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        if (body == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "legalHold is required");
-        }
+
 
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        ev.setLegalHold(body.legalHold());
+        ev.setLegalHold(legalHold);
         ev.setUpdatedAt(Instant.now());
+        var custEvent = CustodyEventType.LEGAL_HOLD_ON;
+        if (!legalHold) {
+            custEvent = CustodyEventType.LEGAL_HOLD_OFF;
+        }
         evidenceRepo.save(ev);
-
         custody.record(
                 ev,
                 user,
-                body.legalHold() ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF,
+                custEvent,
                 Map.of()
         );
 
