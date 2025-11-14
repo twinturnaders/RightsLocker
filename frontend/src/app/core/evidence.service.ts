@@ -70,14 +70,13 @@ export class EvidenceApi {
 
   list(opts: { status?: string; page?: number; size?: number } = {}) {
     let params = new HttpParams();
-    if (opts.status) params = params.set('status', opts.status);
     if (opts.page != null) params = params.set('page', String(opts.page));
     if (opts.size != null) params = params.set('size', String(opts.size));
-    return this.http.get<Page<Evidence>>(this.base, { params });
+    return this.http.get<Page<Evidence>>('/api/evidence', { params });
   }
 
   get(id: string): Observable<Evidence> {
-    return this.http.get<Evidence>(`${this.base}/${id}`);
+    return this.http.get<Evidence>(`${this.base}/`, { params: { id } });
   }
 
 

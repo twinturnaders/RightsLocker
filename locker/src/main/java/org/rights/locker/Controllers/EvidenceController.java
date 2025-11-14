@@ -67,12 +67,11 @@ public class EvidenceController {
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
+
     @GetMapping("/api/evidence")
     public ResponseEntity<?> listOrGet(@AuthenticationPrincipal UserPrincipal user,
-                                       @PageableDefault(sort ="createdAt")Pageable pageable,
-                                       @RequestParam(defaultValue="0") int page,
-                                       @RequestParam(defaultValue="20") int size){
-
+                                       @PageableDefault(sort ="createdAt")Pageable pageable
+                                       ){
 
         if (user != null) {
             return ResponseEntity.ok(evidenceService.list(user, pageable));
