@@ -43,7 +43,8 @@ public class AuthController {
     private final UserSessionService userSessionService;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest req
+                                              ) {
         AppUser user = authService.loginAndReturnUser(req.email(), req.password());
         String sub = user.getId().toString();
         String token = jwtService.issueAccessToken(sub);
