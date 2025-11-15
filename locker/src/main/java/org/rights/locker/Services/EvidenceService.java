@@ -84,7 +84,7 @@ public class EvidenceService {
         }
     }
 
-    public Page<Evidence> list(UserPrincipal owner, Pageable pageable){
+    public Page<Evidence> list(AppUser owner, Pageable pageable){
         UUID ownerId = owner.getId();
         AppUser user = appUserRepo.findById(ownerId).orElse(null);
         if (user != null) {

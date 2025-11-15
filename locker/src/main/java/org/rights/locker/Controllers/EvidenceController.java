@@ -45,7 +45,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/evidence")
 @RequiredArgsConstructor
 public class EvidenceController {
 
@@ -65,19 +65,20 @@ public class EvidenceController {
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
 
-    @GetMapping("/api/evidence")
-    public ResponseEntity<?> listOrGet(@AuthenticationPrincipal UserPrincipal user,
-                                       @PageableDefault(sort ="createdAt")Pageable pageable
-                                       ){
+    @GetMapping
+    public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
+                                  @PageableDefault(sort = "createdAt") Pageable pageable) {
 
-        if (user != null) {
-            return ResponseEntity.ok(evidenceService.list(user, pageable));
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
-        return null;
+        return ResponseEntity.ok(evidenceService.list(user, pageable));
     }
+
     /* presign upload (public) */
     public record PresignUploadReq(String filename, String contentType) {}
-    @PostMapping("/evidence/presign-upload")
+    @PostMapping("/presign-upload")
     public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
         String safeName = (req.filename() == null ? "file.bin" : req.filename())
                 .replaceAll("[^a-zA-Z0-9._-]", "_");
@@ -103,7 +104,7 @@ public class EvidenceController {
             String redactMode
     ){}
 
-    @PostMapping("/evidence/finalize")
+    @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal AppUser currentUser) throws Exception {
 
@@ -199,7 +200,7 @@ public class EvidenceController {
     }
 
     /* presigned GET per type (auth only) */
-    @GetMapping("/evidence/{id}/download")
+    @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
                                        @RequestParam(defaultValue = "original") String type,
                                        @AuthenticationPrincipal AppUser user) {
@@ -228,7 +229,7 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/evidence/{id}/legal-hold")
+    @PostMapping("/{id}/legal-hold")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @RequestParam boolean legalHold,
@@ -257,7 +258,7 @@ public class EvidenceController {
         // 204 avoids any Jackson serialization issues
         return ResponseEntity.noContent().build();
     }
-    @DeleteMapping("/evidence/{id}")
+    @DeleteMapping("/{id}")
     public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         var ev = evidenceRepo.findByIdAndOwner(id, user)
