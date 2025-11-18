@@ -33,7 +33,7 @@
            <a routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()">
              Convert
            </a>
-           <a *ngIf="auth.isAuthed$ | async">
+           <a *ngIf="auth.isAuthed$ | async"
               routerLink="/evidence"
               routerLinkActive="active"
               (click)="closeSidebar()">
