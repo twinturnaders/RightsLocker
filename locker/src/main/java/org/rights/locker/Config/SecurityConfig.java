@@ -47,6 +47,7 @@ public class SecurityConfig {
 
 
 
+
                         // public share links
                         .requestMatchers("/api/share/**").permitAll()
 
