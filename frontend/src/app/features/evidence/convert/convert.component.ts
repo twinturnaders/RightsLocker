@@ -98,7 +98,8 @@ export class ConvertComponent {
           title: this.title,
           description: this.blur ? 'Public convert (blur=on)' : 'Public convert',
           capturedAtIso: new Date().toISOString(),
-          redactMode: this.blur ? 'BLUR' : 'NONE',
+          redactMode: this.blur ? 'BLUR' : 'NONE'
+
         })
         .toPromise();
 

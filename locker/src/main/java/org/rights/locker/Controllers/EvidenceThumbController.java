@@ -1,11 +1,13 @@
 package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -24,8 +26,8 @@ public class EvidenceThumbController {
 
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    @GetMapping(value = "/thumb", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> thumbnail(
+    @GetMapping(value = "/{id}/thumb", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> thumbnail(@AuthenticationPrincipal AppUser user,
             @RequestParam(required = false) UUID id,
             @RequestParam(required = false) String key
     ) throws Exception {

@@ -81,7 +81,7 @@ export class EvidenceApi {
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { param: legalHold });
+    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { id, param: legalHold });
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
@@ -118,7 +118,20 @@ export class EvidenceApi {
     }>(`${environment.apiBase}/share/${token}`);
   }
 
-  thumbUrlById(id: string){ return `${this.base}/thumb?id=${id}`; }
-  thumbUrlByKey(key: string){ return `${this.base}/thumb?key=${encodeURIComponent(key)}`; }
+
+  thumbUrlById(id: string | null, key: string | null | undefined)
+  {
+
+    if (id != null) {
+      return `${this.base}/${id}/thumb`; }
+
+    else if (key != null){
+      return `${this.base}/${encodeURIComponent(key)}/thumb`;
+    }
+
+    else {
+      return null
+    }
+  }
 
 }

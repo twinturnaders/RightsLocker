@@ -40,8 +40,8 @@ export class EvidenceDetailComponent {
   thumbSrc = computed(() => {
     const ev = this.evidence();
     if (!ev) return null;
-    if (ev.thumbnailKey) return this.api.thumbUrlByKey(ev.thumbnailKey);
-    return this.api.thumbUrlById(ev.id);
+    if (ev.thumbnailKey) return
+    return this.api.thumbUrlById(ev.id, ev.thumbnailKey);
   });
 
   canDelete(ev: Evidence) {
