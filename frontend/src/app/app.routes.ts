@@ -20,7 +20,9 @@ export const routes: Routes = [
 
   { path:'register', loadComponent:()=>import('./features/auth/register/register.component').then(m=>m.RegisterComponent) },
   { path: 'evidence', component: EvidencePageComponent },
-  { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.route-wrapper').then(m => m.EvidenceDetailRouteWrapper) },
+  { path: 'evidence-detail', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.component').then(m => m.EvidenceDetailComponent) },
+  { path: 'evidence-list', loadComponent: () => import('./features/evidence/evidence-list/evidence-list.component').then(m => m.EvidenceListComponent) },
+
   { path: 'convert', redirectTo: 'evidence' },
   { path:'**', redirectTo:'home' }
 ];
