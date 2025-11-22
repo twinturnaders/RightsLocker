@@ -1,6 +1,7 @@
-import {Component, EventEmitter, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Output, inject, OnInit} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
-import { DatePipe, NgFor, NgIf } from '@angular/common';
+import {AsyncPipe, DatePipe, NgFor, NgIf} from '@angular/common';
+
 
 @Component({
   standalone: true,
@@ -9,7 +10,7 @@ import { DatePipe, NgFor, NgIf } from '@angular/common';
   templateUrl: 'evidence-list.component.html',
   styleUrls: ['evidence-list.component.css']
 })
-export class EvidenceListComponent {
+export class EvidenceListComponent implements OnInit {
   private api = inject(EvidenceApi);
 
   @Output() selected = new EventEmitter<Evidence>();
@@ -18,6 +19,7 @@ export class EvidenceListComponent {
   loading = false;
   error = '';
 
+
   ngOnInit() { this.load(0, 20); }
 
   reload() {
@@ -25,9 +27,9 @@ export class EvidenceListComponent {
     this.load(this.page.number, this.page.size);
   }
 
-  load(page: number, size: number) {
+  load(page: number, pageSize: number) {
     this.loading = true; this.error = '';
-    this.api.list({ page, size }).subscribe({
+    this.api.list( page, pageSize ).subscribe({
       next: (p) => { this.page = p; this.loading = false; },
       error: (err) => { this.error = err?.error?.message || err.statusText || 'Failed to load'; this.loading = false; }
     });
@@ -44,3 +46,4 @@ export class EvidenceListComponent {
 
   pick(e: Evidence) { this.selected.emit(e); }
 }
+

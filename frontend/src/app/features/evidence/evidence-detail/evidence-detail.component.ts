@@ -23,6 +23,7 @@ export class EvidenceDetailComponent {
   private router = inject(Router);
   private api = inject(EvidenceApi);
 
+
   evidence = signal<Evidence | null>(null);
   loading = signal(true);
   deleting = signal(false);

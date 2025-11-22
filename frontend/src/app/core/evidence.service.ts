@@ -73,7 +73,7 @@ export class EvidenceApi {
   }
 
   get(id: string): Observable<Evidence> {
-    return this.http.get<Evidence>(`${this.base}`);
+    return this.http.get<Evidence>(`${this.base}`, { params: { id } });
   }
 
 
