@@ -77,6 +77,17 @@ public class EvidenceController {
         return ResponseEntity.ok(evidenceService.list(user, pageable));
     }
 
+    @GetMapping("/{id}")
+    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        return evidenceRepo.findByIdAndOwner(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+
+
+   }
+
+
     /* presign upload (public) */
     public record PresignUploadReq(String filename, String contentType) {}
     @PostMapping("/presign-upload")
