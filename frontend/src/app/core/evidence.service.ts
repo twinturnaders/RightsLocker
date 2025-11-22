@@ -68,20 +68,17 @@ export class EvidenceApi {
   private http = inject(HttpClient);
   base = `${environment.apiBase}/evidence`;
 
-  list(opts: { status?: string; page?: number; size?: number } = {}) {
-    let params = new HttpParams();
-    if (opts.page != null) params = params.set('page', String(opts.page));
-    if (opts.size != null) params = params.set('size', String(opts.size));
-    return this.http.get<Page<Evidence>>('/api/evidence', { params });
+  list( page: number, pageSize: number) {
+    return this.http.get<Page<Evidence>>(`${this.base}?page=${page}&pageSize=${pageSize}`);
   }
 
   get(id: string): Observable<Evidence> {
-    return this.http.get<Evidence>(`${this.base}`, { params: { id } });
+    return this.http.get<Evidence>(`${this.base}`);
   }
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { id, param: legalHold });
+    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { id, legalHold });
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
