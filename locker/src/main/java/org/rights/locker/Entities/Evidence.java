@@ -15,7 +15,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "evidence")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@ToString
 public class Evidence {
     @Id @GeneratedValue
     @Column(name = "id")
@@ -68,7 +71,7 @@ public class Evidence {
     @Column(name = "redacted_size")
     private Long redactedSize;
     @Column(nullable = false, name= "legal_hold")
-    private boolean legalHold;
+    private Boolean legalHold;
 
 
     @Column(nullable = false, name = "created_at")
@@ -136,7 +139,5 @@ public class Evidence {
     public void setRedactedSizeB(Long outputSizeB) {
     }
 
-    public Boolean getLegalHold() {
-        return this.legalHold;
-    }
+
 }

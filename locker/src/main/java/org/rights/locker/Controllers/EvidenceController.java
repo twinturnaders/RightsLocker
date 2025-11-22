@@ -244,20 +244,22 @@ public class EvidenceController {
     @PostMapping("/{id}/legal-hold")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @RequestParam boolean legalHold,
+                                             @RequestParam Boolean legalHold,
                                              @AuthenticationPrincipal AppUser user) {
 
+        boolean lh = legalHold;
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
 
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        ev.setLegalHold(legalHold);
+        ev.setLegalHold(lh);
         ev.setUpdatedAt(Instant.now());
         var custEvent = CustodyEventType.LEGAL_HOLD_ON;
         if (!legalHold) {
             custEvent = CustodyEventType.LEGAL_HOLD_OFF;
+
         }
         evidenceRepo.save(ev);
         custody.record(
@@ -276,7 +278,7 @@ public class EvidenceController {
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        if (Boolean.TRUE.equals(ev.getLegalHold())) {
+        if (ev.getLegalHold() != false) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Evidence is on legal hold and cannot be deleted.");
         }
 
