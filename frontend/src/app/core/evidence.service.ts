@@ -69,7 +69,10 @@ export class EvidenceApi {
   base = `${environment.apiBase}/evidence`;
 
   list( page: number, pageSize: number) {
-    return this.http.get<Page<Evidence>>(`${this.base}?page=${page}&pageSize=${pageSize}`);
+   let params = new HttpParams()
+   .set('page', page)
+     .set('pageSize', pageSize)
+    return this.http.get<Page<Evidence>>(`${this.base}`, { params });
   }
 
   get(id: string): Observable<Evidence> {
@@ -78,7 +81,7 @@ export class EvidenceApi {
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { id, legalHold });
+    return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`, (legalHold));
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {

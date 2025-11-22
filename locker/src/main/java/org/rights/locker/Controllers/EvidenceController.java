@@ -2,6 +2,7 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.index.hprtree.Item;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.Entities.AppUser;
@@ -19,6 +20,8 @@ import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.web.PageableDefault;
@@ -68,8 +71,16 @@ public class EvidenceController {
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
-                                  @PageableDefault(sort = "createdAt") Pageable pageable) {
+                                  @PageableDefault(sort = "createdAt") Pageable pageable,
+                                  @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "10") int size,
+    @RequestParam(required = false) String searchTerm){
+        Pageable paging = PageRequest.of(page, size);
+        Page<Item> itemsPage;
 
+        // For future iterations for search of evidence
+//        if (searchTerm != null && !searchTerm.isEmpty()) {
+//            itemsPage = evidenceService.findItemsBySearchTerm(searchTerm, paging);
 
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
@@ -78,10 +89,11 @@ public class EvidenceController {
     }
 
     @GetMapping("/{id}")
-    public Evidence get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
+    public ResponseEntity<Evidence> get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        return evidenceRepo.findByIdAndOwner(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+       return evidenceRepo.findById(id)
+                .map(evidence -> new ResponseEntity<>(evidence, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
 
 
@@ -241,20 +253,20 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/{id}/legal-hold")
+    @PostMapping("/{id}/{legalHold}")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @RequestParam Boolean legalHold,
+                                             @PathVariable boolean legalHold,
                                              @AuthenticationPrincipal AppUser user) {
 
-        boolean lh = legalHold;
+
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
 
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        ev.setLegalHold(lh);
+        ev.setLegalHold(legalHold);
         ev.setUpdatedAt(Instant.now());
         var custEvent = CustodyEventType.LEGAL_HOLD_ON;
         if (!legalHold) {

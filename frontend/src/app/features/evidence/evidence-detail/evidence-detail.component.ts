@@ -1,7 +1,7 @@
 import {Component, inject, signal, computed, OnInit} from '@angular/core';
 import { AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EvidenceApi, Evidence } from '../../../core/evidence.service';
+import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import { switchMap } from 'rxjs/operators';
 import { BytesPipe } from '../../../core/pipes/bytes.pipe';
 import { DurationMsPipe } from '../../../core/pipes/duration.pipe';
@@ -22,7 +22,7 @@ export class EvidenceDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(EvidenceApi);
-
+  base = `${environment.apiBase}/evidence`
 
   evidence = signal<Evidence | null>(null);
   loading = signal(true);
@@ -38,6 +38,11 @@ export class EvidenceDetailComponent implements OnInit {
     });
   }
 
+  evidenceDetail(id: string) {
+    this.api.get(id).subscribe((evidence) => {
+      this.evidence.set(evidence); this.loading.set(false);
+    })
+  }
   thumbSrc = computed(() => {
     const ev = this.evidence();
     if (!ev) return null;
@@ -55,7 +60,7 @@ export class EvidenceDetailComponent implements OnInit {
     if (!ok) return;
 
     this.deleting.set(true);
-    this.http.delete(`${environment.apiBase}/evidence/${ev.id}`, {
+    this.http.delete(`${environment.apiBase}/${ev.id}`, {
       headers: this.auth.token ? { Authorization: `Bearer ${this.auth.token}` } : {}
     }).subscribe({
       next: () => this.router.navigateByUrl('/evidence'),

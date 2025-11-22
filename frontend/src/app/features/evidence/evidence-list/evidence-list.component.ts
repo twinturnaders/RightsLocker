@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Output, inject, OnInit} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import {AsyncPipe, DatePipe, NgFor, NgIf} from '@angular/common';
+import {HttpClient} from '@angular/common/http';
 
 
 @Component({
@@ -14,35 +15,44 @@ export class EvidenceListComponent implements OnInit {
   private api = inject(EvidenceApi);
 
   @Output() selected = new EventEmitter<Evidence>();
-
-  page?: Page<Evidence>;
+  evidence: Evidence[] = [];
+  page: Evidence[] = [];
   loading = false;
   error = '';
+  currentPage = 1;
+  pageSize = 10;
+  totalPages = 0;
 
-
-  ngOnInit() { this.load(0, 20); }
-
-  reload() {
-    if (!this.page) return this.load(0, 20);
-    this.load(this.page.number, this.page.size);
+  constructor(private http: HttpClient, private evidenceApi: EvidenceApi) {
   }
 
-  load(page: number, pageSize: number) {
+
+  ngOnInit() { this.load(); }
+
+  reload() {
+    if (!this.evidence) return this.load();
+    this.load();
+  }
+
+  load() {
     this.loading = true; this.error = '';
-    this.api.list( page, pageSize ).subscribe({
-      next: (p) => { this.page = p; this.loading = false; },
-      error: (err) => { this.error = err?.error?.message || err.statusText || 'Failed to load'; this.loading = false; }
+    this.api.list( this.currentPage, this.pageSize ).subscribe((evidence: Page<Evidence>) => {
+      this.evidence = evidence.content;
+      this.totalPages = evidence.totalPages;
     });
   }
 
+  onPageChange(newPage:number): void {
+    this.currentPage = newPage;
+    this.load();
+  }
+
   next() {
-    if (!this.page) return;
-    if (this.page.number + 1 < this.page.totalPages) this.load(this.page.number + 1, this.page.size);
-  }
+    this.currentPage += 1;
+    this.load();}
   prev() {
-    if (!this.page) return;
-    if (this.page.number > 0) this.load(this.page.number - 1, this.page.size);
-  }
+    this.currentPage -= 1;
+    this.load();}
 
   pick(e: Evidence) { this.selected.emit(e); }
 }
