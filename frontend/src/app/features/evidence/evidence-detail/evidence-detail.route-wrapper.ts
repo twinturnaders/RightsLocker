@@ -8,20 +8,20 @@ import { EvidenceDetailComponent } from './evidence-detail.component';
   standalone: true,
   imports: [NgIf, AsyncPipe, EvidenceDetailComponent],
   template: `
-<!--    <ng-container *ngIf="id$ | async as id; else bad">-->
-<!--      <rl-evidence-detail [id]="id"></rl-evidence-detail>-->
-<!--    </ng-container>-->
-<!--    <ng-template #bad>-->
-<!--      <div class="card">Invalid or missing ID.</div>-->
-<!--    </ng-template>-->
+    <ng-container *ngIf="id$ | async as id; else bad">
+      <rl-evidence-detail [id]="id"></rl-evidence-detail>
+    </ng-container>
+    <ng-template #bad>
+      <div class="card">Invalid or missing ID.</div>
+    </ng-template>
   `
 })
 export class EvidenceDetailRouteWrapper {
-  // private route = inject(ActivatedRoute);
-  // private router = inject(Router);
-  //
-  // // If your route is /evidence/:id
-  // id$ = this.route.paramMap.pipe(
-  //   map(pm => pm.get('id')),
-  // );
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  // If your route is /evidence/:id
+  id$ = this.route.paramMap.pipe(
+    map(pm => pm.get('id')),
+  );
 }
