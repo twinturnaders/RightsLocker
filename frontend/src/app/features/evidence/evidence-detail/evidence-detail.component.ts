@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import {Component, inject, signal, computed, OnInit} from '@angular/core';
 import { AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EvidenceApi, Evidence } from '../../../core/evidence.service';
@@ -16,7 +16,7 @@ import { AuthService } from '../../../core/auth.service';
   templateUrl: './evidence-detail.component.html',
   styleUrls: ['./evidence-detail.component.css']
 })
-export class EvidenceDetailComponent {
+export class EvidenceDetailComponent implements OnInit {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
