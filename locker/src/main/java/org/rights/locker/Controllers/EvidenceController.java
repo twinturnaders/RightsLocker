@@ -71,21 +71,18 @@ public class EvidenceController {
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
-                                  @PageableDefault(sort = "createdAt") Pageable pageable,
                                   @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size,
-    @RequestParam(required = false) String searchTerm){
-        Pageable paging = PageRequest.of(page, size);
-        Page<Item> itemsPage;
+    @RequestParam(defaultValue = "10") int size ){
+//    @RequestParam(required = false) String searchTerm){
+
 
         // For future iterations for search of evidence
 //        if (searchTerm != null && !searchTerm.isEmpty()) {
 //            itemsPage = evidenceService.findItemsBySearchTerm(searchTerm, paging);
 
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
-        return ResponseEntity.ok(evidenceService.list(user, pageable));
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        Pageable paging = PageRequest.of(page, size);
+        return ResponseEntity.ok(evidenceService.list(user, paging));
     }
 
     @GetMapping("/{id}")

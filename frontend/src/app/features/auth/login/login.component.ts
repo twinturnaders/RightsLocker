@@ -11,6 +11,7 @@ import { NgIf } from '@angular/common';
   templateUrl: 'login.component.html',
   styleUrls: ['login.component.css']
 })
+
 export class LoginComponent {
   fb = inject(FormBuilder);
   auth = inject(AuthService);

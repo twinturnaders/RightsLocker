@@ -1,4 +1,4 @@
-import {Component, inject, signal, computed, OnInit} from '@angular/core';
+import {Component, inject, signal, computed, OnInit, Input} from '@angular/core';
 import { AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
@@ -8,6 +8,7 @@ import { DurationMsPipe } from '../../../core/pipes/duration.pipe';
 import { environment } from '../../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/auth.service';
+import {map, of} from 'rxjs';
 
 @Component({
   standalone: true,
@@ -29,13 +30,13 @@ export class EvidenceDetailComponent implements OnInit {
   deleting = signal(false);
   error = signal<string>('');
 
-  ngOnInit() {
-    this.route.paramMap.pipe(
-      switchMap(p => this.api.get(p.get('id')!))
-    ).subscribe({
-      next: ev => { this.evidence.set(ev); this.loading.set(false); },
-      error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }
-    });
+  @Input() id!: string;
+
+  ngOnInit(){
+    (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
+      .pipe(switchMap(id => this.api.get(id)))
+      .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
+        error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
   }
 
   evidenceDetail(id: string) {
@@ -44,9 +45,7 @@ export class EvidenceDetailComponent implements OnInit {
     })
   }
   thumbSrc = computed(() => {
-    const ev = this.evidence();
-    if (!ev) return null;
-    if (ev.thumbnailKey) return
+    const ev = this.evidence(); if (!ev) return null;
     return this.api.thumbUrlById(ev.id, ev.thumbnailKey);
   });
 
@@ -60,7 +59,7 @@ export class EvidenceDetailComponent implements OnInit {
     if (!ok) return;
 
     this.deleting.set(true);
-    this.http.delete(`${environment.apiBase}/${ev.id}`, {
+    this.http.delete(`${this.base}/${ev.id}`, {
       headers: this.auth.token ? { Authorization: `Bearer ${this.auth.token}` } : {}
     }).subscribe({
       next: () => this.router.navigateByUrl('/evidence'),
