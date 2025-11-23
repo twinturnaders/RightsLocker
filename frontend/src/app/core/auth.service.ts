@@ -49,6 +49,12 @@ export class AuthService {
     ).pipe(tap(r => this.setTokens(r.accessToken, r.refreshToken)));
   }
 
+  register(email:string,password:string,displayName:string){
+    const body: RegisterReq={email,password,displayName};
+    return this.http.post(`${environment.apiBase}/auth/register`,body,{withCredentials:true})
+      .pipe(switchMap(()=>this.login(email,password)));
+  }
+
   // auth.service.ts
   refresh(): Observable<string> {
     const token = this.token;
