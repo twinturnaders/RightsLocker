@@ -230,16 +230,16 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/{id}/legal-hold")
+    @PostMapping("/{id}/legal-hold/{legalHold}")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @RequestParam boolean legalHold,
+                                             @PathVariable boolean legalHold,
                                              @AuthenticationPrincipal AppUser user) {
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
 
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);

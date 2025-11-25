@@ -38,6 +38,9 @@ public class SecurityConfig {
                         // auth (public)
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers("/api/evidence/**/legal-hold/**").permitAll()
+                        .requestMatchers("/api/evidence/**/thumb/**").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
 
                         // anonymous upload only these 2
