@@ -5,10 +5,12 @@ import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -27,10 +29,12 @@ public class EvidenceThumbController {
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
     @GetMapping(value = "/{id}/thumb/{key}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> thumbnail(
+    public ResponseEntity<byte[]> thumbnail(AuthenticationPrincipal user,
             @PathVariable UUID id,
             @PathVariable String key
     ) throws Exception {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+
         String k = key;
         if (id != null) {
             var ev = evidenceRepo.findById(id).orElseThrow();

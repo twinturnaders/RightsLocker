@@ -255,7 +255,7 @@ public class EvidenceController {
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
-                                             @AuthenticationPrincipal Jwt principal) {
+                                             @AuthenticationPrincipal AppUser user) {
 
 
 

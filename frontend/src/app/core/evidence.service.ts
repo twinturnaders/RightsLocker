@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 
 export interface Evidence {
   id: string;
+  owner: string | null;
   title?: string | null;
   description?: string | null;
 

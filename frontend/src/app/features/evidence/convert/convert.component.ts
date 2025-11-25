@@ -110,13 +110,7 @@ export class ConvertComponent {
         this.uploaded.emit(ev);
 
         // If the user is authenticated and checked "Legal Hold", set it now.
-        if (this.hold && this.auth.token != null) {
-          try {
-            await this.api.setLegalHold(String(ev.id), true).toPromise();
-          } catch {
-            // non-fatal for uploader
-          }
-        }
+
 
         if (fin.shareToken) {
           // Anonymous flow: poll until redacted (or original if no redaction) is ready
@@ -133,7 +127,6 @@ export class ConvertComponent {
                 break;
               }
             }
-            await new Promise((r) => setTimeout(r, 2000));
           }
           this.readyUrl = `${this.base}/share/${this.shareToken}/package?type=redacted&includeThumb=true`;
           this.metaPdfUrl = `${this.base}/share/${this.shareToken}/metadata.pdf`;
@@ -141,6 +134,15 @@ export class ConvertComponent {
           // Authed flow: no public package link; they can use detail page
           this.readyUrl = '';
           this.metaPdfUrl = '';
+          await new Promise((r) => setTimeout(r, 2000));
+
+          if (this.hold && this.auth.token != null) {
+            try {
+              await this.api.setLegalHold(String(ev.id), true).toPromise();
+            } catch {
+              // non-fatal for uploader
+            }
+          }
         }
       }
 
@@ -151,5 +153,7 @@ export class ConvertComponent {
       this.msg = 'Upload failed: ' + (err?.message || 'unknown error');
       this.uploading = false;
     }
+
   }
+
 }
