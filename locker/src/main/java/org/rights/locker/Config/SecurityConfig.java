@@ -24,50 +24,53 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-   private final AppUserRepo appUserRepo;
-   private final JwtService jwtService;
-   private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 
-    @Bean
-    SecurityFilterChain api(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // auth (public)
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/evidence/**/thumb/**").permitAll()
+        @Bean
+        JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
+            return new JwtAuthenticationFilter(jwtService, userRepo);
+        }
 
-                        .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
+        @Bean
+        SecurityFilterChain api(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+            return http
+                    .csrf(csrf -> csrf.disable())
+                    .cors(Customizer.withDefaults())
+                    .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .authorizeHttpRequests(auth -> auth
+                            // auth (public)
+                            .requestMatchers("/api/auth/**").permitAll()
+                            .requestMatchers("/api/evidence/presign-upload", "/api/evidence/legalHold/**","/api/evidence/finalize", "/api/evidence/**/thumb/**").permitAll()
 
-                        // anonymous upload only these 2
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
+                            .requestMatchers("/api/evidence", "/api/evidence/**").authenticated()
 
-                        // public share links
-                        .requestMatchers("/api/share/**").permitAll()
 
-                        // health/docs/static
-                        .requestMatchers("/actuator/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                            // public share links
+                            .requestMatchers("/api/share/**").permitAll()
 
-                        // everything else requires JWT
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .httpBasic(Customizer.withDefaults())
-                .build();
+                            // health/docs/static
+                            .requestMatchers("/actuator/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                            // everything else requires JWT
+                            .anyRequest().authenticated()
+                    )
+                    .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                    .httpBasic(Customizer.withDefaults())
+                    .build();
+        }
+
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+            var cfg = new CorsConfiguration();
+            cfg.setAllowedOrigins(List.of("*", "http://localhost:4200", "http://127.0.0.1:30082", "http://127.0.0.1:30080", "http://127.0.0.1:30081", "http://127.0.0.1:8080"));
+            cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            cfg.setAllowedHeaders(List.of("*"));
+            cfg.setAllowCredentials(false);
+            cfg.setAllowCredentials(true);
+            var source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", cfg);
+            return source;
+        }
     }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        var cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("*"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(false);
-        var source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
-    }
-}
+

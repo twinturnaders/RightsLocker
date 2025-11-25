@@ -81,7 +81,7 @@ export class EvidenceApi {
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`,{});
+    return this.http.post<Evidence>(`${this.base}/legalHold/${id}/${legalHold}`,{});
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {

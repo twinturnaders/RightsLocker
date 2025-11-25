@@ -253,7 +253,7 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/{id}/{legalHold}")
+    @PostMapping("/legalHold/{id}/{legalHold}")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
