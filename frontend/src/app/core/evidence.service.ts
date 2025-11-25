@@ -69,9 +69,9 @@ export class EvidenceApi {
   base = `${environment.apiBase}/evidence`;
 
   list( page: number, pageSize: number) {
-   let params = new HttpParams()
-   .set('page', page)
-     .set('pageSize', pageSize)
+    let params = new HttpParams()
+      .set('page', page)
+      .set('pageSize', pageSize)
     return this.http.get<Page<Evidence>>(`${this.base}`, { params });
   }
 
@@ -81,7 +81,7 @@ export class EvidenceApi {
 
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/legalHold/${id}/${legalHold}`,{});
+    return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`, (legalHold));
   }
 
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
@@ -119,9 +119,19 @@ export class EvidenceApi {
   }
 
 
-  thumbUrlById(id: string | null, key?: string | null) {
-    if (id != null || key != null)  return `${this.base}/${encodeURIComponent(id!)}/thumb/${encodeURIComponent(key!)}`;
-    else return null;
+  thumbUrlById(id: string | null, key: string | null | undefined)
+  {
+
+    if (id != null) {
+      return `${this.base}/${id}/thumb`; }
+
+    else if (key != null){
+      return `${this.base}/${encodeURIComponent(key)}/thumb`;
+    }
+
+    else {
+      return null
+    }
   }
 
 }

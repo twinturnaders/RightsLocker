@@ -2,7 +2,6 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.locationtech.jts.index.hprtree.Item;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.Entities.AppUser;
@@ -20,8 +19,6 @@ import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.web.PageableDefault;
@@ -61,8 +58,8 @@ public class EvidenceController {
     private final CustodyService custody;
     private final StorageService storage;
     private final ShareService shareService;
-  private final MetadataService metadataService;
-  private final AppUserRepo appUserRepo;
+    private final MetadataService metadataService;
+    private final AppUserRepo appUserRepo;
     private final EvidenceService evidenceService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
@@ -71,34 +68,14 @@ public class EvidenceController {
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
-                                  @PageableDefault(sort = "createdAt") Pageable pageable,
-                                  @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size,
-    @RequestParam(required = false) String searchTerm){
-        Pageable paging = PageRequest.of(page, size);
-        Page<Item> itemsPage;
+                                  @PageableDefault(sort = "createdAt") Pageable pageable) {
 
-        // For future iterations for search of evidence
-//        if (searchTerm != null && !searchTerm.isEmpty()) {
-//            itemsPage = evidenceService.findItemsBySearchTerm(searchTerm, paging);
 
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         return ResponseEntity.ok(evidenceService.list(user, pageable));
     }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Evidence> get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-       return evidenceRepo.findById(id)
-                .map(evidence -> new ResponseEntity<>(evidence, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-
-
-
-   }
-
 
     /* presign upload (public) */
     public record PresignUploadReq(String filename, String contentType) {}
@@ -253,17 +230,16 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/{id}/{legalHold}")
+    @PostMapping("/{id}/legal-hold")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @PathVariable boolean legalHold,
+                                             @RequestParam boolean legalHold,
                                              @AuthenticationPrincipal AppUser user) {
-
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
 
-        var ev = evidenceRepo.findById(id)
+        var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);
@@ -271,7 +247,6 @@ public class EvidenceController {
         var custEvent = CustodyEventType.LEGAL_HOLD_ON;
         if (!legalHold) {
             custEvent = CustodyEventType.LEGAL_HOLD_OFF;
-
         }
         evidenceRepo.save(ev);
         custody.record(
@@ -290,7 +265,7 @@ public class EvidenceController {
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        if (ev.getLegalHold() != false) {
+        if (Boolean.TRUE.equals(ev.getLegalHold())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Evidence is on legal hold and cannot be deleted.");
         }
 
