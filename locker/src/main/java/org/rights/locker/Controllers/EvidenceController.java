@@ -153,6 +153,7 @@ public class EvidenceController {
 
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
+                .id(UUID.randomUUID())
                 .title(req.title())
                 .owner(currentUser)
                 .description(req.description())
