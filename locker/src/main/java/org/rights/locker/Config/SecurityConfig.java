@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // auth (public)
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
+                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize", "/api/evidence/legalHold/**", "/api/evidence/**/thumb/**").permitAll()
                         .requestMatchers("/api/evidence", "/api/evidence/**").authenticated()
 
 
