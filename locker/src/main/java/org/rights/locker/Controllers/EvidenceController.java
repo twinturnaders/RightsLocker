@@ -28,6 +28,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -62,18 +63,20 @@ public class EvidenceController {
     private final CustodyService custody;
     private final StorageService storage;
     private final ShareService shareService;
-  private final MetadataService metadataService;
-  private final AppUserRepo appUserRepo;
+    private final MetadataService metadataService;
+    private final AppUserRepo appUserRepo;
     private final EvidenceService evidenceService;
 
-    @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
-    @Value("${app.s3.bucketHot}") private String bucketHot;
+    @Value("${app.s3.bucketOriginals}")
+    private String bucketOriginals;
+    @Value("${app.s3.bucketHot}")
+    private String bucketHot;
 
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
                                   @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size ){
+                                  @RequestParam(defaultValue = "10") int size) {
 //    @RequestParam(required = false) String searchTerm){
 
 
@@ -89,17 +92,18 @@ public class EvidenceController {
     @GetMapping("/{id}")
     public ResponseEntity<Evidence> get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-       return evidenceRepo.findById(id)
+        return evidenceRepo.findById(id)
                 .map(evidence -> new ResponseEntity<>(evidence, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
 
-
-   }
+    }
 
 
     /* presign upload (public) */
-    public record PresignUploadReq(String filename, String contentType) {}
+    public record PresignUploadReq(String filename, String contentType) {
+    }
+
     @PostMapping("/presign-upload")
     public Map<String, Object> presignUpload(@RequestBody PresignUploadReq req) {
         String safeName = (req.filename() == null ? "file.bin" : req.filename())
@@ -124,19 +128,25 @@ public class EvidenceController {
             String key, String title, String description,
             String capturedAtIso, Double lat, Double lon, Double accuracy,
             String redactMode
-    ){}
+    ) {
+    }
 
     @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal AppUser currentUser) throws Exception {
 
         // SHA-256 + size
-        String sha256; long size = 0;
+        String sha256;
+        long size = 0;
         try (ResponseInputStream<GetObjectResponse> in = s3.getObject(b -> b.bucket(bucketOriginals).key(req.key()));
              InputStream is = in) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[8192]; int r;
-            while ((r = is.read(buf)) != -1) { md.update(buf, 0, r); size += r; }
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = is.read(buf)) != -1) {
+                md.update(buf, 0, r);
+                size += r;
+            }
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
@@ -148,12 +158,16 @@ public class EvidenceController {
 
         // Extract rich metadata
         MediaMetadata meta = null;
-        try { meta = metadataService.extractFromUrl(originalUrl); }
-        catch (Exception e){ log.warn("metadata extraction failed: {}", e.toString()); }
+        try {
+            meta = metadataService.extractFromUrl(originalUrl);
+        } catch (Exception e) {
+            log.warn("metadata extraction failed: {}", e.toString());
+        }
 
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
                 .title(req.title())
+                .owner(currentUser)
                 .description(req.description())
                 .capturedAt(capturedAt)
                 .originalKey(req.key())
@@ -223,22 +237,29 @@ public class EvidenceController {
 
     /* presigned GET per type (auth only) */
     @GetMapping("/{id}/download")
-    public Map<String,String> download(@PathVariable UUID id,
-                                       @RequestParam(defaultValue = "original") String type,
-                                       @AuthenticationPrincipal AppUser user) {
+    public Map<String, String> download(@PathVariable UUID id,
+                                        @RequestParam(defaultValue = "original") String type,
+                                        @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         var ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        String bucket; String key;
+        String bucket;
+        String key;
         switch (type.toLowerCase()) {
             case "thumbnail" -> {
                 key = ev.getThumbnailKey();
                 bucket = (key == null) ? bucketOriginals : bucketHot;
                 if (key == null) key = ev.getOriginalKey();
             }
-            case "redacted" -> { bucket = bucketHot; key = ev.getRedactedKey(); }
-            default -> { bucket = bucketOriginals; key = ev.getOriginalKey(); }
+            case "redacted" -> {
+                bucket = bucketHot;
+                key = ev.getRedactedKey();
+            }
+            default -> {
+                bucket = bucketOriginals;
+                key = ev.getOriginalKey();
+            }
         }
         if (key == null || key.isBlank()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
@@ -255,34 +276,38 @@ public class EvidenceController {
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
-                                             @AuthenticationPrincipal AppUser user) {
+                                             Authentication authentication) {
 
-
-
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-
-
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        ev.setLegalHold(legalHold);
-        ev.setUpdatedAt(Instant.now());
-        var custEvent = CustodyEventType.LEGAL_HOLD_ON;
-        if (!legalHold) {
-            custEvent = CustodyEventType.LEGAL_HOLD_OFF;
-
-        }
-        evidenceRepo.save(ev);
-        custody.record(
-                ev,
-                user,
-                custEvent,
-                Map.of()
-        );
-
-        // 204 avoids any Jackson serialization issues
+        log.info("Auth: name={}, principalClass={}, authorities={}",
+                authentication.getName(),
+                authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getName() : "null",
+                authentication.getAuthorities());
         return ResponseEntity.noContent().build();
     }
+//        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+//
+//
+//        var ev = evidenceRepo.findByIdAndOwner(id, user)
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+//
+//        ev.setLegalHold(legalHold);
+//        ev.setUpdatedAt(Instant.now());
+//        var custEvent = CustodyEventType.LEGAL_HOLD_ON;
+//        if (!legalHold) {
+//            custEvent = CustodyEventType.LEGAL_HOLD_OFF;
+//
+//        }
+//        evidenceRepo.save(ev);
+//        custody.record(
+//                ev,
+//                user,
+//                custEvent,
+//                Map.of()
+//        );
+//
+//        // 204 avoids any Jackson serialization issues
+//
+//    }
     @DeleteMapping("/{id}")
     public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
