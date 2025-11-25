@@ -23,10 +23,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
-        return new JwtAuthenticationFilter(jwtService, userRepo);
-    }
+   private final AppUserRepo appUserRepo;
+   private final JwtService jwtService;
+   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
 
     @Bean
     SecurityFilterChain api(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
@@ -52,7 +52,7 @@ public class SecurityConfig {
                         // everything else requires JWT
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults())
                 .build();
     }
