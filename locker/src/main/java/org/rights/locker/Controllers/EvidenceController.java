@@ -153,7 +153,9 @@ public class EvidenceController {
 
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
+
                 .title(req.title())
+                .owner(currentUser)
                 .description(req.description())
                 .capturedAt(capturedAt)
                 .originalKey(req.key())
@@ -251,7 +253,7 @@ public class EvidenceController {
 
     /* legal hold toggle (auth only) */
 
-    @PostMapping("/{id}/{legalHold}")
+    @PostMapping("/legalHold/{id}/{legalHold}")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
@@ -261,8 +263,7 @@ public class EvidenceController {
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
-
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);
