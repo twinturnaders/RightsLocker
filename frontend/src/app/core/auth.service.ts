@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import {BehaviorSubject, catchError, map, of, pipe, switchMap, tap} from 'rxjs';
+import {BehaviorSubject, catchError, map, Observable, of, pipe, switchMap, tap} from 'rxjs';
 import { environment } from '../../environments/environment';
+import { JwtInterceptor} from './jwt.interceptor';
 
 
 interface LoginRes{ accessToken:string, email:string }
@@ -9,41 +10,73 @@ interface RegisterReq{ email:string; password:string; displayName:string }
 interface LoginRequest { email: string; password: string; }
 
 @Injectable({providedIn:'root'})
-export class AuthService{
-  private http=inject(HttpClient);
-  private _token$=new BehaviorSubject<string|null>(null);
+export class AuthService {
+  private http = inject(HttpClient);
+  private _token$ = new BehaviorSubject<string | null>(null);
+  private _refreshToken$ = new BehaviorSubject<string | null>(null);
 
-
-  isAuthed$=this._token$.pipe(map(t=>!!t));
-  get token(){return this._token$.value}
-  set token(v){this._token$.next(v)}
-
-
-
-  login(email:string,password:string){
-
-    return this.http.post<LoginRes>(`${environment.apiBase}/auth/login`,{email,password},{withCredentials:true})
-      .pipe(tap(r=>this.token=r.accessToken))
-
+  constructor() {
+    const t = localStorage.getItem('rl.access');     // restore after refresh
+    const r = localStorage.getItem('rl.refresh');
+    if (t) this._token$.next(t);
+    if (r) this._refreshToken$.next(r);
   }
+
+  get token() {
+    return this._token$.value
+  }
+  set token(v: string | null) {
+    this._token$.next(v);
+  }
+
+  isAuthed$ = this._token$.pipe(map(t => !!t));
+  get refreshToken() {
+    return this._refreshToken$.value
+  }
+
+  private setTokens(access: string, refresh: string) {
+    this._token$.next(access);
+    this._refreshToken$.next(refresh);
+    localStorage.setItem('rl.access', access);
+    localStorage.setItem('rl.refresh', refresh);
+  }
+
+  login(email: string, password: string) {
+    return this.http.post<{ accessToken: string, refreshToken: string, email: string }>(
+      `${environment.apiBase}/auth/login`,
+      {email, password},
+      {withCredentials: true}
+    ).pipe(tap(r => this.setTokens(r.accessToken, r.refreshToken)));
+  }
+
   register(email:string,password:string,displayName:string){
     const body: RegisterReq={email,password,displayName};
     return this.http.post(`${environment.apiBase}/auth/register`,body,{withCredentials:true})
       .pipe(switchMap(()=>this.login(email,password)));
   }
-  refresh(){
-    // call /api/auth/refresh with current token as Bearer (acting as refresh for now)
+
+  // auth.service.ts
+  refresh(): Observable<string> {
     const token = this.token;
-    return this.http.post<LoginRes>(
+    return this.http.post<{ accessToken: string }>(
       `${environment.apiBase}/auth/refresh`,
       {},
       { headers: token ? { Authorization: `Bearer ${token}` } : {} }
     ).pipe(
-      tap(r => this.token = r.accessToken),
-      map(r=>r.accessToken),
+      map(r => {
+        if (!r?.accessToken) throw new Error('No access token in refresh response');
+        this.token = r.accessToken;          // also updates BehaviorSubject via setter
+        return r.accessToken;                // <-- always a string now
+      })
     );
   }
-  logout(){ this.http.post(`${environment.apiBase}/auth/logout`,{}, {withCredentials:true}).subscribe(); this.token=null; }
-  demoLogin(){ this.login('demo@rl.local','password').subscribe(); }
 
+
+  logout() {
+    this.http.post(`${environment.apiBase}/auth/logout`, {}, {withCredentials: true}).subscribe();
+    this._token$.next(null);
+    this._refreshToken$.next(null);
+    localStorage.removeItem('rl.access');
+    localStorage.removeItem('rl.refresh');
+  }
 }
