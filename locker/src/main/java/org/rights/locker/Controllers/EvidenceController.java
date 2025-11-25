@@ -153,7 +153,7 @@ public class EvidenceController {
 
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
-                .id(UUID.randomUUID())
+
                 .title(req.title())
                 .owner(currentUser)
                 .description(req.description())
@@ -263,8 +263,7 @@ public class EvidenceController {
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
-
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);
