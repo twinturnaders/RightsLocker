@@ -110,7 +110,7 @@ export class ConvertComponent {
         this.uploaded.emit(ev);
 
         // If the user is authenticated and checked "Legal Hold", set it now.
-        if (this.hold && this.auth.token && ev?.id) {
+        if (this.hold && this.auth.token != null) {
           try {
             await this.api.setLegalHold(String(ev.id), true).toPromise();
           } catch {

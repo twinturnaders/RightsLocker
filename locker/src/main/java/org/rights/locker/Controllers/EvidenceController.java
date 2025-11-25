@@ -1,5 +1,6 @@
 package org.rights.locker.Controllers;
 
+import io.jsonwebtoken.Jwt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.index.hprtree.Item;
@@ -254,7 +255,8 @@ public class EvidenceController {
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
-                                             @AuthenticationPrincipal AppUser user) {
+                                             @AuthenticationPrincipal Jwt principal) {
+
 
 
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
