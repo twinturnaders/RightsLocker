@@ -40,11 +40,11 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/evidence/**/legal-hold/**").permitAll()
                         .requestMatchers("/api/evidence/**/thumb/**").permitAll()
+                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
 
                         // anonymous upload only these 2
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
 
                         // public share links
                         .requestMatchers("/api/share/**").permitAll()
