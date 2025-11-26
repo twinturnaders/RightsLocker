@@ -260,7 +260,7 @@ public class EvidenceController {
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 
 
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);

@@ -26,10 +26,9 @@ public class EvidenceThumbController {
 
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    @GetMapping(value = "/{id}/thumb", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> thumbnail(@AuthenticationPrincipal AppUser user,
-            @RequestParam(required = false) UUID id,
-            @RequestParam(required = false) String key
+    @GetMapping(value = "/{id}/thumb/{key}", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> thumbnail(@PathVariable UUID id,
+            @PathVariable String key
     ) throws Exception {
         String k = key;
         if (id != null) {
