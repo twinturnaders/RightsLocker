@@ -2,7 +2,6 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.locationtech.jts.index.hprtree.Item;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.Entities.AppUser;
@@ -20,11 +19,8 @@ import org.rights.locker.Repos.ProcessingJobRepo;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -64,13 +60,14 @@ public class EvidenceController {
   private final MetadataService metadataService;
   private final AppUserRepo appUserRepo;
     private final EvidenceService evidenceService;
+    private final UserPrincipalService principalService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
 
     @GetMapping
-    public ResponseEntity<?> list(@AuthenticationPrincipal AppUser user,
+    public ResponseEntity<?> list(@AuthenticationPrincipal UserPrincipal principal,
                                   @RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "20") int size ){
 //    @RequestParam(required = false) String searchTerm){
@@ -80,17 +77,25 @@ public class EvidenceController {
 //        if (searchTerm != null && !searchTerm.isEmpty()) {
 //            itemsPage = evidenceService.findItemsBySearchTerm(searchTerm, paging);
 
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        Pageable paging = PageRequest.of(page, size);
-        return ResponseEntity.ok(evidenceService.list(user, paging));
+        if (principal == null) {throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);}
+        else if (appUserRepo.findById(principal.getId()).isPresent()) {
+            AppUser user = appUserRepo.findById(principal.getId()).get();
+            Pageable paging = PageRequest.of(page, size);
+
+        return ResponseEntity.ok(evidenceService.list(user, paging));}
+        else {throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);}
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Evidence> get(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-       return evidenceRepo.findById(id)
-                .map(evidence -> new ResponseEntity<>(evidence, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<Evidence> get(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal principal) {
+        if (appUserRepo.findById(principal.getId()).isPresent()){
+
+            return evidenceRepo.findById(id)
+                    .map(evidence -> new ResponseEntity<>(evidence, HttpStatus.OK))
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        }
+        else throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+
 
 
 
@@ -127,7 +132,7 @@ public class EvidenceController {
 
     @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
-                                           @AuthenticationPrincipal AppUser currentUser) throws Exception {
+                                           @AuthenticationPrincipal UserPrincipal principal) throws Exception {
 
         // SHA-256 + size
         String sha256; long size = 0;
@@ -189,12 +194,12 @@ public class EvidenceController {
         String redactMode = (req.redactMode() == null || req.redactMode().isBlank())
                 ? "BLUR" : req.redactMode().toUpperCase();
 
-        if (currentUser != null) {
+        AppUser currentUser = principalService.checkUser(principal);
             ev.setOwner(currentUser);
-        }
-        ev = evidenceRepo.save(ev);
 
-        custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
+            ev = evidenceRepo.save(ev);
+
+            custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
         // If anonymous, mint a 24h share link (original disabled)
         String shareToken = null;
@@ -224,9 +229,9 @@ public class EvidenceController {
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
                                        @RequestParam(defaultValue = "original") String type,
-                                       @AuthenticationPrincipal AppUser user) {
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+                                       @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.checkUser(principal);
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         String bucket; String key;
@@ -254,11 +259,9 @@ public class EvidenceController {
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
                                              @PathVariable boolean legalHold,
-                                             @AuthenticationPrincipal AppUser user) {
+                                             @AuthenticationPrincipal UserPrincipal principal) {
 
-
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-
+        AppUser user = principalService.requireUser(principal);
 
         var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -282,9 +285,14 @@ public class EvidenceController {
         return ResponseEntity.noContent().build();
     }
     @DeleteMapping("/{id}")
-    public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal AppUser user) {
+    public void deleteEvidence(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal principal) {
+        AppUser user;
+        if (appUserRepo.findById(principal.getId()).isPresent()) {
+            user = appUserRepo.findById(principal.getId()).get();
+        }
+        else {user = null;}
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (ev.getLegalHold() != false) {

@@ -3,6 +3,7 @@ package org.rights.locker.Controllers;
 import lombok.RequiredArgsConstructor;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Repos.EvidenceRepo;
+import org.rights.locker.Security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -28,8 +29,9 @@ public class EvidenceThumbController {
 
     @GetMapping(value = "/{id}/thumb/{key}", produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> thumbnail(@PathVariable UUID id,
-            @PathVariable String key
-    ) throws Exception {
+                                            @PathVariable String key
+                                            ) throws Exception {
+
         String k = key;
         if (id != null) {
             var ev = evidenceRepo.findById(id).orElseThrow();

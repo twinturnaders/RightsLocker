@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.AppProps;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
+import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Repos.EvidenceRepo;
+import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.PDFBuilderService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -45,6 +47,7 @@ public class EvidencePackageController {
     private final ObjectMapper om;
     private final AppProps app;
     private final PDFBuilderService pdfService;
+    private final AppUserRepo appUserRepo;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -57,11 +60,12 @@ public class EvidencePackageController {
             @PathVariable UUID id,
             @RequestParam(defaultValue = "original") String type,
             @RequestParam(defaultValue = "true") boolean includeThumb,
-            @AuthenticationPrincipal AppUser current
-    ) {
-        if (current == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            @AuthenticationPrincipal UserPrincipal principal
+            ) {
+        if(appUserRepo.findById(principal.getId()).isEmpty()) {throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);}
 
-        Evidence ev = evidenceRepo.findByIdAndOwner(id, current)
+
+        Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
