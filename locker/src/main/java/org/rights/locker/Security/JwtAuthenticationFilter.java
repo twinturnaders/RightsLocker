@@ -50,7 +50,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Optional<AppUser> userOpt = userRepo.findById(userId);
                 if (userOpt.isPresent() && jwtService.isTokenValid(token, userOpt.get())) {
 
-                    UsernamePasswordAuthenticationToken auth = getUsernamePasswordAuthenticationToken(userOpt);
+                    AppUser user = userOpt.get();
+                    UserPrincipal principal = new UserPrincipal(
+                            user.getId(),
+                            user.getEmail(),
+                            user.getPasswordHash(),
+                            user.getRole()
+                    );
+
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(
+                                    principal,
+                                    null,
+                                    principal.getAuthorities()
+                            );
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
@@ -62,23 +75,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private static UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken(Optional<AppUser> userOpt) {
-        AppUser user = userOpt.get();
-        UserPrincipal principal = new UserPrincipal(
-                user.getId(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                user.getRole()
-        );
-
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        principal,
-                        null,
-                        principal.getAuthorities()
-                );
-        return auth;
     }
 }

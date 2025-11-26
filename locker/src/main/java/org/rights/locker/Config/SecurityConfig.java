@@ -33,15 +33,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
 
                         // anonymous upload only these 2
-                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
-
+                        .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize", "/api/evidence/**/thumb/**").permitAll()
+                        .requestMatchers("/api/evidence/share/**", "/api/evidence/**/share").permitAll()
                         // everything else under /api/evidence requires auth
                         .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/evidence/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/evidence/**").authenticated()
 
                         // public share links
-                        .requestMatchers("/api/share/**").permitAll()
+
 
                         // health/docs/static
                         .requestMatchers("/actuator/**", "/error",
