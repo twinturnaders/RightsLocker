@@ -124,10 +124,6 @@ export class EvidenceApi {
     if (!id || !key) {
       return null;
     }
-    if (!key) {
-      return `${this.base}/thumb/${encodeURIComponent(id)}`;
-    }
-
-    else return `${this.base}/thumb/${encodeURIComponent(key)}`
+    return `${this.base}/thumb/${encodeURIComponent(id)}/${encodeURIComponent(key)}`;
   }
 }
