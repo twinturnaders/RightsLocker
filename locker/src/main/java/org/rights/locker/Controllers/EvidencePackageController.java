@@ -6,10 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.rights.locker.Config.AppProps;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
-import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.PDFBuilderService;
+import org.rights.locker.Services.UserPrincipalService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +24,6 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -47,7 +46,7 @@ public class EvidencePackageController {
     private final ObjectMapper om;
     private final AppProps app;
     private final PDFBuilderService pdfService;
-    private final AppUserRepo appUserRepo;
+    private final UserPrincipalService principalService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -61,11 +60,10 @@ public class EvidencePackageController {
             @RequestParam(defaultValue = "original") String type,
             @RequestParam(defaultValue = "true") boolean includeThumb,
             @AuthenticationPrincipal UserPrincipal principal
-            ) {
-        if(appUserRepo.findById(principal.getId()).isEmpty()) {throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);}
+    ) {
+        AppUser user = principalService.requireUser(principal);
 
-
-        Evidence ev = evidenceRepo.findById(id)
+        Evidence ev = evidenceRepo.findByIdAndOwner(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
@@ -75,8 +73,9 @@ public class EvidencePackageController {
                 : (hasRedacted ? bucketHot : bucketOriginals);
         String filenameBase = ("original".equalsIgnoreCase(type) || !hasRedacted) ? "original" : "redacted";
 
-        if (key == null || key.isBlank())
+        if (key == null || key.isBlank()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Primary media is not available yet.");
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -106,6 +105,7 @@ public class EvidencePackageController {
                         copyToZip(zip, th, "thumb.jpg", thMd);
                         thumbShaHex = HexFormat.of().formatHex(thMd.digest());
                     } catch (Exception ignore) {}
+
                 }
 
                 // 3) metadata.json (include rich metadata)
@@ -128,7 +128,7 @@ public class EvidencePackageController {
                 ));
 
                 // enriched
-                metadata.put("dateOriginal", ev.getExifDateOriginal() != null ? ISO.format(ev.getExifDateOriginal()) : null);
+                metadata.put("dateOriginal", ev.getExifDateOriginal());
                 metadata.put("tzMinutes", ev.getTzOffsetMinutes());
                 metadata.put("altitudeM", ev.getCaptureAltitudeM());
                 metadata.put("headingDeg", ev.getCaptureHeadingDeg());
