@@ -61,9 +61,9 @@ public class EvidencePackageController {
             @RequestParam(defaultValue = "true") boolean includeThumb,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        AppUser user = principalService.requireUser(principal);
+        AppUser user = principalService.requireUser(principal); // currently just enforces auth
 
-        Evidence ev = evidenceRepo.findByIdAndOwner(id, user)
+        Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         boolean hasRedacted = ev.getRedactedKey() != null && !ev.getRedactedKey().isBlank();
@@ -73,9 +73,8 @@ public class EvidencePackageController {
                 : (hasRedacted ? bucketHot : bucketOriginals);
         String filenameBase = ("original".equalsIgnoreCase(type) || !hasRedacted) ? "original" : "redacted";
 
-        if (key == null || key.isBlank()) {
+        if (key == null || key.isBlank())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Primary media is not available yet.");
-        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -105,10 +104,9 @@ public class EvidencePackageController {
                         copyToZip(zip, th, "thumb.jpg", thMd);
                         thumbShaHex = HexFormat.of().formatHex(thMd.digest());
                     } catch (Exception ignore) {}
-
                 }
 
-                // 3) metadata.json (include rich metadata)
+                // 3) metadata.json
                 boolean isRedacted = hasRedacted && !("original".equalsIgnoreCase(type));
                 Map<String,Object> metadata = new LinkedHashMap<>();
                 metadata.put("evidenceId", ev.getId().toString());
@@ -127,8 +125,8 @@ public class EvidencePackageController {
                         "sizeBytes", mediaSize
                 ));
 
-                // enriched
-                metadata.put("dateOriginal", ev.getExifDateOriginal());
+                // enriched data
+                metadata.put("dateOriginal", ev.getExifDateOriginal() != null ? ISO.format(ev.getExifDateOriginal()) : null);
                 metadata.put("tzMinutes", ev.getTzOffsetMinutes());
                 metadata.put("altitudeM", ev.getCaptureAltitudeM());
                 metadata.put("headingDeg", ev.getCaptureHeadingDeg());
@@ -148,7 +146,7 @@ public class EvidencePackageController {
 
                 putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
 
-                // 4) metadata.pdf (beautified)
+                // 4) metadata.pdf
                 byte[] metaPdf = pdfService.buildMetadataPdf(metadata);
                 putBytes(zip, "metadata.pdf", metaPdf);
 
@@ -171,7 +169,7 @@ public class EvidencePackageController {
         return ResponseEntity.ok().headers(headers).body(body);
     }
 
-    /* helpers (same as before) */
+    /* helpers */
     static long copyToZip(ZipOutputStream zip, InputStream in, String name, MessageDigest md) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         byte[] buf = new byte[BUF];

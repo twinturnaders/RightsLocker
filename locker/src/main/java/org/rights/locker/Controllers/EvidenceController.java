@@ -32,7 +32,6 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -61,7 +60,6 @@ public class EvidenceController {
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    // -------- List evidence (auth only, paged) --------
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal UserPrincipal principal,
                                   @RequestParam(defaultValue = "0") int page,
@@ -72,17 +70,14 @@ public class EvidenceController {
         return ResponseEntity.ok(evidenceService.list(user, paging));
     }
 
-    // -------- Get single evidence (auth only, owner) --------
     @GetMapping("/{id}")
     public ResponseEntity<Evidence> get(@PathVariable UUID id,
                                         @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.requireUser(principal); // only checks auth; you can also enforce ownership later
 
-        AppUser user = principalService.requireUser(principal);
-
-        // Assuming you have this repo method (you used it earlier):
-        return evidenceRepo.findByIdAndOwner(id, user)
-                .map(ev -> new ResponseEntity<>(ev, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        Evidence ev = evidenceRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return new ResponseEntity<>(ev, HttpStatus.OK);
     }
 
     /* presign upload (public) */
@@ -107,46 +102,37 @@ public class EvidenceController {
         }};
     }
 
-    /* finalize (public – anonymous OR authed) */
+    /* finalize (public, but may have an authenticated user) */
     public record FinalizeReq(
             String key, String title, String description,
             String capturedAtIso, Double lat, Double lon, Double accuracy,
             String redactMode
-    ) {}
+    ){}
 
     @PostMapping("/finalize")
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal UserPrincipal principal) throws Exception {
 
         // SHA-256 + size
-        String sha256;
-        long size = 0;
+        String sha256; long size = 0;
         try (ResponseInputStream<GetObjectResponse> in = s3.getObject(b -> b.bucket(bucketOriginals).key(req.key()));
              InputStream is = in) {
-
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[8192];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                md.update(buf, 0, r);
-                size += r;
-            }
+            byte[] buf = new byte[8192]; int r;
+            while ((r = is.read(buf)) != -1) { md.update(buf, 0, r); size += r; }
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
         // Presign so extractors can read
         var presigned = presigner.presignGetObject(b -> b
-                .signatureDuration(Duration.ofMinutes(5))
+                .signatureDuration(java.time.Duration.ofMinutes(5))
                 .getObjectRequest(r -> r.bucket(bucketOriginals).key(req.key())));
         String originalUrl = presigned.url().toString();
 
         // Extract rich metadata
         MediaMetadata meta = null;
-        try {
-            meta = metadataService.extractFromUrl(originalUrl);
-        } catch (Exception e) {
-            log.warn("metadata extraction failed: {}", e.toString());
-        }
+        try { meta = metadataService.extractFromUrl(originalUrl); }
+        catch (Exception e){ log.warn("metadata extraction failed: {}", e.toString()); }
 
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
@@ -160,7 +146,6 @@ public class EvidenceController {
                 .legalHold(false)
                 .build();
 
-        // Persist extracted metadata if present
         if (meta != null) {
             ev.setExifDateOriginal(meta.dateOriginal());
             ev.setTzOffsetMinutes(meta.tzMinutes());
@@ -184,30 +169,28 @@ public class EvidenceController {
         String redactMode = (req.redactMode() == null || req.redactMode().isBlank())
                 ? "BLUR" : req.redactMode().toUpperCase();
 
-        // Allow anonymous OR authed
         AppUser currentUser = principalService.getUserOrNull(principal);
-        if (currentUser != null) {
-            ev.setOwner(currentUser);
-        }
+        ev.setOwner(currentUser);
 
         ev = evidenceRepo.save(ev);
 
-        custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
+        custody.record(ev,
+                currentUser,
+                CustodyEventType.RECEIVED,
+                Map.of("source", "presigned"));
 
         // If anonymous, mint a 24h share link (original disabled)
         String shareToken = null;
         if (currentUser == null) {
-            var share = shareService.create(ev.getId(), Instant.now().plus(Duration.ofHours(24)), false);
+            var share = shareService.create(ev.getId(),
+                    Instant.now().plus(java.time.Duration.ofHours(24)),
+                    false);
             shareToken = share.getToken();
         }
 
         // Enqueue processing
         var thumb = jobRepo.save(ProcessingJob.builder()
-                .evidence(ev)
-                .type(JobType.THUMBNAIL)
-                .status(JobStatus.QUEUED)
-                .attempts(0)
-                .build());
+                .evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
         processor.publish(thumb);
 
         var redact = jobRepo.save(ProcessingJob.builder()
@@ -222,43 +205,34 @@ public class EvidenceController {
         return new FinalizeResponse(ev, shareToken);
     }
 
-    /* presigned GET per type (auth only, owner) */
     @GetMapping("/{id}/download")
     public Map<String,String> download(@PathVariable UUID id,
                                        @RequestParam(defaultValue = "original") String type,
                                        @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.requireUser(principal);
 
-        AppUser user = principalService.requireUser(principal);
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        String bucket;
-        String key;
+        String bucket; String key;
         switch (type.toLowerCase()) {
             case "thumbnail" -> {
                 key = ev.getThumbnailKey();
                 bucket = (key == null) ? bucketOriginals : bucketHot;
                 if (key == null) key = ev.getOriginalKey();
             }
-            case "redacted" -> {
-                bucket = bucketHot;
-                key = ev.getRedactedKey();
-            }
-            default -> {
-                bucket = bucketOriginals;
-                key = ev.getOriginalKey();
-            }
+            case "redacted" -> { bucket = bucketHot; key = ev.getRedactedKey(); }
+            default -> { bucket = bucketOriginals; key = ev.getOriginalKey(); }
         }
         if (key == null || key.isBlank()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
         String finalKey = key;
         var presigned = presigner.presignGetObject(b -> b
-                .signatureDuration(Duration.ofMinutes(10))
+                .signatureDuration(java.time.Duration.ofMinutes(10))
                 .getObjectRequest(r -> r.bucket(bucket).key(finalKey)));
         return Map.of("url", presigned.url().toString());
     }
 
-    /* legal hold toggle (auth only, owner) */
     @PostMapping("/{id}/{legalHold}")
     @Transactional
     public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
@@ -267,17 +241,19 @@ public class EvidenceController {
 
         AppUser user = principalService.requireUser(principal);
 
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         ev.setLegalHold(legalHold);
         ev.setUpdatedAt(Instant.now());
-        var custEvent = legalHold ? CustodyEventType.LEGAL_HOLD_ON : CustodyEventType.LEGAL_HOLD_OFF;
+        var custEvent = legalHold
+                ? CustodyEventType.LEGAL_HOLD_ON
+                : CustodyEventType.LEGAL_HOLD_OFF;
 
         evidenceRepo.save(ev);
         custody.record(ev, user, custEvent, Map.of());
 
-        return ResponseEntity.noContent().build();   // 204
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
@@ -286,21 +262,19 @@ public class EvidenceController {
 
         AppUser user = principalService.requireUser(principal);
 
-        var ev = evidenceRepo.findByIdAndOwner(id, user)
+        var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (Boolean.TRUE.equals(ev.getLegalHold())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Evidence is on legal hold and cannot be deleted.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Evidence is on legal hold and cannot be deleted.");
         }
 
-        try {
-            custody.record(ev, user, CustodyEventType.DELETED, Map.of());
-        } catch (Exception ignore) {}
+        try { custody.record(ev, user, CustodyEventType.DELETED, Map.of()); } catch (Exception ignore) {}
 
         jobRepo.deleteByEvidenceId(ev.getId());
         shareService.deleteByEvidenceId(ev.getId());
 
-        // delete S3 blobs (ignore missing keys)
         deleteQuiet(bucketOriginals, ev.getOriginalKey());
         deleteQuiet(bucketHot, ev.getRedactedKey());
         deleteQuiet(bucketHot, ev.getThumbnailKey());
@@ -311,21 +285,14 @@ public class EvidenceController {
 
     private void deleteQuiet(String bucket, String key) {
         if (key == null || key.isBlank()) return;
-        try {
-            s3.deleteObject(b -> b.bucket(bucket).key(key));
-        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException ignored) {
-        } catch (Exception e) {
-            log.warn("S3 delete failed for {}/{}: {}", bucket, key, e.toString());
-        }
+        try { s3.deleteObject(b -> b.bucket(bucket).key(key)); }
+        catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException ignored) {}
+        catch (Exception e) { log.warn("S3 delete failed for {}/{}: {}", bucket, key, e.toString()); }
     }
 
-    /* helpers */
     private static Instant parseInstant(String iso) {
         if (iso == null || iso.isBlank()) return null;
-        try {
-            return OffsetDateTime.parse(iso).toInstant();
-        } catch (DateTimeParseException ex) {
-            return Instant.parse(iso);
-        }
+        try { return OffsetDateTime.parse(iso).toInstant(); }
+        catch (DateTimeParseException ex) { return Instant.parse(iso); }
     }
 }

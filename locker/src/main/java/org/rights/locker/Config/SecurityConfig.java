@@ -2,34 +2,28 @@ package org.rights.locker.Config;
 
 import lombok.RequiredArgsConstructor;
 import org.rights.locker.Security.JwtAuthenticationFilter;
-import org.rights.locker.Security.JwtService;
-import org.rights.locker.Repos.AppUserRepo;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, AppUserRepo userRepo) {
-        return new JwtAuthenticationFilter(jwtService, userRepo);
-    }
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
-    SecurityFilterChain api(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    SecurityFilterChain api(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -38,20 +32,25 @@ public class SecurityConfig {
                         // auth (public)
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
                         // anonymous upload only these 2
                         .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
+
+                        // everything else under /api/evidence requires auth
+                        .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/evidence/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/evidence/**").authenticated()
 
                         // public share links
                         .requestMatchers("/api/share/**").permitAll()
 
                         // health/docs/static
-                        .requestMatchers("/actuator/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/actuator/**", "/error",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // everything else requires JWT
+                        // any other endpoint requires auth
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults())
                 .build();
     }
@@ -60,9 +59,10 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         var cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(List.of("*"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(false);
+
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
         return source;
