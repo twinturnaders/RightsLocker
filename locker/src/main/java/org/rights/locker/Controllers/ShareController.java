@@ -44,7 +44,7 @@ public class ShareController {
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
 
-    @PostMapping("/evidence/{id}/share")
+    @PostMapping("/evidence/share/{id}")
     public ShareLink create(@PathVariable UUID id, @RequestBody org.rights.locker.DTOs.ShareCreateRequest req){
         return shareService.create(id, req.expiresAt(), req.allowOriginal());
     }

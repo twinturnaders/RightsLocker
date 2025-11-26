@@ -120,7 +120,7 @@ export class EvidenceApi {
 
 
   thumbUrlById(id: string | null, key?: string | null) {
-    if (key != null || id != null){ return `${this.base}/${encodeURIComponent(id!)}/thumb/${encodeURIComponent(key!)}`;}
+    if (key != null || id != null){ return `${this.base}/thumb/${encodeURIComponent(id!)}/${encodeURIComponent(key!)}`;}
 
     else {return null;}
   }
