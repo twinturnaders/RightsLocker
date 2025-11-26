@@ -2,8 +2,8 @@ name: CI/CD (Build, Push, Deploy)
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch: {}
+    branches: [ main ]
+  workflow_dispatch: { }
 
 jobs:
   build:
@@ -43,7 +43,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest # Run this job on the latest Ubuntu version
-    needs: [build]
+    needs: [ build ]
 
     steps:
       - name: Checkout
