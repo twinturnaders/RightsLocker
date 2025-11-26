@@ -59,9 +59,7 @@ export class EvidenceDetailComponent implements OnInit {
     if (!ok) return;
 
     this.deleting.set(true);
-    this.http.delete(`${this.base}/${ev.id}`, {
-      headers: this.auth.token ? { Authorization: `Bearer ${this.auth.token}` } : {}
-    }).subscribe({
+    this.http.delete(`${this.base}/${ev.id}`).subscribe({
       next: () => this.router.navigateByUrl('/evidence'),
       error: e => {
         alert(e?.error?.message || 'Delete failed');

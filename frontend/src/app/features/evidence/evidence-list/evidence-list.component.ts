@@ -1,8 +1,6 @@
 import {Component, EventEmitter, Output, inject, OnInit} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
-import {AsyncPipe, DatePipe, NgFor, NgIf} from '@angular/common';
-import {HttpClient} from '@angular/common/http';
-
+import {DatePipe, NgFor, NgIf} from '@angular/common';
 
 @Component({
   standalone: true,
@@ -15,45 +13,58 @@ export class EvidenceListComponent implements OnInit {
   private api = inject(EvidenceApi);
 
   @Output() selected = new EventEmitter<Evidence>();
+
   evidence: Evidence[] = [];
-  page: Evidence[] = [];
   loading = false;
   error = '';
-  currentPage = 1;
+
+  // backend `Page` is almost always zero-based, so start at 0
+  currentPage = 0;
   pageSize = 10;
   totalPages = 0;
 
-  constructor(private http: HttpClient, private evidenceApi: EvidenceApi) {
+  ngOnInit() {
+    this.load();
   }
 
-
-  ngOnInit() { this.load(); }
-
   reload() {
-    if (!this.evidence) return this.load();
     this.load();
   }
 
   load() {
-    this.loading = true; this.error = '';
-    this.api.list( this.currentPage, this.pageSize ).subscribe((evidence: Page<Evidence>) => {
-      this.evidence = evidence.content;
-      this.totalPages = evidence.totalPages;
+    this.loading = true;
+    this.error = '';
+
+    this.api.list(this.currentPage, this.pageSize).subscribe({
+      next: (page: Page<Evidence>) => {
+        this.evidence = page.content;
+        this.totalPages = page.totalPages ?? 0;
+        this.loading = false;
+      },
+      error: err => {
+        this.error = err?.error?.message || 'Failed to load evidence';
+        this.loading = false;
+      }
     });
   }
 
-  onPageChange(newPage:number): void {
+  onPageChange(newPage: number) {
+    if (newPage < 0 || (this.totalPages && newPage >= this.totalPages)) {
+      return;
+    }
     this.currentPage = newPage;
     this.load();
   }
 
   next() {
-    this.currentPage += 1;
-    this.load();}
+    this.onPageChange(this.currentPage + 1);
+  }
+
   prev() {
-    this.currentPage -= 1;
-    this.load();}
+    this.onPageChange(this.currentPage - 1);
+  }
 
-  pick(e: Evidence) { this.selected.emit(e); }
+  pick(e: Evidence) {
+    this.selected.emit(e);
+  }
 }
-

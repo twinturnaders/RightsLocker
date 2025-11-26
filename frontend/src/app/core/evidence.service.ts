@@ -119,10 +119,15 @@ export class EvidenceApi {
   }
 
 
-  thumbUrlById(id: string | null, key?: string | null) {
-    if (key != null || id != null){ return `${this.base}/thumb/${encodeURIComponent(id!)}/${encodeURIComponent(key!)}`;}
+  thumbUrlById(id?: string | null, key?: string | null) {
+    // Only build a URL if we actually have BOTH id and thumbnail key
+    if (!id || !key) {
+      return null;
+    }
+    if (!key) {
+      return `${this.base}/thumb/${encodeURIComponent(id)}`;
+    }
 
-    else {return null;}
+    else return `${this.base}/thumb/${encodeURIComponent(key)}`
   }
-
 }

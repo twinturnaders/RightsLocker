@@ -3,18 +3,27 @@
 <div *ngIf="loading">Loading…</div>
 <div *ngIf="error" class="help">{{error}}</div>
 
-<div class="grid" *ngIf="page as evidence">
+<div class="grid" *ngIf="!loading && !error && evidence && evidence.length">
   <div class="card" *ngFor="let e of evidence" (click)="pick(e)" style="cursor:pointer">
     <div class="row">
       <div class="title">{{e.title || 'Untitled'}}</div>
       <span class="badge">{{e.status}}</span>
     </div>
-    <div class="meta">Captured: {{e.capturedAt | date:'short'}} • Legal hold: {{e.legalHold}}</div>
+    <div class="meta">
+      Captured: {{e.capturedAt | date:'short'}} •
+      Legal hold: {{e.legalHold ? 'Yes' : 'No'}}
+    </div>
   </div>
 </div>
 
-<div class="row" style="margin-top:8px">
-  <button class="btn" (click)="prev()">Prev</button>
+<div *ngIf="!loading && !error && (!evidence || !evidence.length)" class="help">
+  No evidence yet.
+</div>
+
+<div class="row" style="margin-top:8px" *ngIf="totalPages > 1">
+  <button class="btn" (click)="prev()" [disabled]="currentPage === 0">Prev</button>
   <div class="spacer"></div>
-  <button class="btn" (click)="next()">Next</button>
+  <span>Page {{currentPage + 1}} / {{totalPages}}</span>
+  <div class="spacer"></div>
+  <button class="btn" (click)="next()" [disabled]="currentPage >= totalPages - 1">Next</button>
 </div>
