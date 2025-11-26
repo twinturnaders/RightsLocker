@@ -38,9 +38,9 @@ public class SecurityConfig {
                         // auth (public)
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/evidence/**/thumb/**", "/api/evidence/**/thumb").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/evidence", "/api/evidence/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/evidence/**/thumb/**").permitAll()
                         // anonymous upload only these 2
                         .requestMatchers("/api/evidence/presign-upload", "/api/evidence/finalize").permitAll()
 

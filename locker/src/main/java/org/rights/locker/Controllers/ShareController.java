@@ -49,7 +49,7 @@ public class ShareController {
         return shareService.create(id, req.expiresAt(), req.allowOriginal());
     }
 
-    @GetMapping("/share/{token}")
+    @GetMapping("/evidence/share/{token}")
     public ResponseEntity<?> getShare(@PathVariable String token){
         var share = shareService.requireActive(token);
         var ev = evidenceRepo.findById(share.getEvidenceId())
