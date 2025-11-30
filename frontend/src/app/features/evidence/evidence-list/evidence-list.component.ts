@@ -1,6 +1,7 @@
-import {Component, EventEmitter, Output, inject, OnInit} from '@angular/core';
+import {Component, EventEmitter, Output, inject, OnInit, ViewChild} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import {DatePipe, NgFor, NgIf} from '@angular/common';
+import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.component';
 
 @Component({
   standalone: true,
@@ -10,7 +11,10 @@ import {DatePipe, NgFor, NgIf} from '@angular/common';
   styleUrls: ['evidence-list.component.css']
 })
 export class EvidenceListComponent implements OnInit {
+  @ViewChild(EvidenceDetailComponent)
+  detailComponent: EvidenceDetailComponent = new EvidenceDetailComponent;
   private api = inject(EvidenceApi);
+
 
   @Output() selected = new EventEmitter<Evidence>();
 
@@ -23,6 +27,9 @@ export class EvidenceListComponent implements OnInit {
   pageSize = 10;
   totalPages = 0;
 
+  getDetails(e: Evidence) {
+    this.detailComponent.evidenceDetail(e.id);
+  }
   ngOnInit() {
     this.load();
   }
@@ -65,6 +72,6 @@ export class EvidenceListComponent implements OnInit {
   }
 
   pick(e: Evidence) {
-    this.selected.emit(e);
+    this.selected.emit((e));
   }
 }

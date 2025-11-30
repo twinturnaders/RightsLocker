@@ -4,7 +4,7 @@
 <div *ngIf="error" class="help">{{error}}</div>
 
 <div class="grid" *ngIf="!loading && !error && evidence && evidence.length">
-  <div class="card" *ngFor="let e of evidence" (click)="pick(e)" style="cursor:pointer">
+  <div class="card" *ngFor="let e of evidence" (click)="getDetails(e)" style="cursor:pointer">
     <div class="row">
       <div class="title">{{e.title || 'Untitled'}}</div>
       <span class="badge">{{e.status}}</span>
