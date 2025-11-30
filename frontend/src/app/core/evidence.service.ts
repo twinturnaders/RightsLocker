@@ -124,6 +124,11 @@ export class EvidenceApi {
     if (!id || !key) {
       return null;
     }
-    return `${this.base}/thumb/${encodeURIComponent(id)}/${encodeURIComponent(key)}`;
+    else {
+      let params = new HttpParams();
+      params.append('key', encodeURIComponent(id));
+      params.append('key', encodeURIComponent(key));
+      return this.http.get(`${this.base}/thumb`,{params:params});
+    }
   }
 }
