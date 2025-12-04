@@ -12,8 +12,8 @@ import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.compon
 })
 export class EvidenceListComponent implements OnInit{
 
-  @ViewChild(EvidenceDetailComponent)
-  evidenceDetail!: EvidenceDetailComponent;
+  // @ViewChild(EvidenceDetailComponent)
+  // evidenceDetail!: EvidenceDetailComponent;
   protected api = inject(EvidenceApi);
 
 
@@ -29,10 +29,10 @@ export class EvidenceListComponent implements OnInit{
   pageSize = 10;
   totalPages = 0;
 
-  getDetails(e: Evidence) {
-    this.pick(e)
-    this.evidenceDetail.evidenceDetail(e.id);
-  }
+  // getDetails(e: Evidence) {
+  //   this.pick(e)
+  //   this.evidenceDetail.evidenceDetail(e.id);
+  // }
 
 
   ngOnInit() {
