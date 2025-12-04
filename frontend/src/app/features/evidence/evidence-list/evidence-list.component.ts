@@ -10,7 +10,8 @@ import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.compon
   templateUrl: 'evidence-list.component.html',
   styleUrls: ['evidence-list.component.css']
 })
-export class EvidenceListComponent implements OnInit {
+export class EvidenceListComponent implements OnInit, AfterViewInit {
+
   @ViewChild(EvidenceDetailComponent)
   evidenceDetail!: EvidenceDetailComponent;
   private api = inject(EvidenceApi);
@@ -19,6 +20,7 @@ export class EvidenceListComponent implements OnInit {
   @Output() selected = new EventEmitter<Evidence>();
 
   evidence: Evidence[] = [];
+  id: string = '';
   loading = false;
   error = '';
 
@@ -28,7 +30,13 @@ export class EvidenceListComponent implements OnInit {
   totalPages = 0;
 
   getDetails(e: Evidence) {
+    this.pick(e)
     this.evidenceDetail.evidenceDetail(e.id);
+  }
+
+  ngAfterViewInit(): void {
+
+this.load();
   }
   ngOnInit() {
     this.load();
