@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Output, inject, OnInit, ViewChild} from '@angular/core';
+import {Component, EventEmitter, Output, inject, OnInit, ViewChild, AfterViewInit} from '@angular/core';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import {DatePipe, NgFor, NgIf} from '@angular/common';
 import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.component';
@@ -12,7 +12,7 @@ import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.compon
 })
 export class EvidenceListComponent implements OnInit {
   @ViewChild(EvidenceDetailComponent)
-  detailComponent: EvidenceDetailComponent = new EvidenceDetailComponent;
+  evidenceDetail!: EvidenceDetailComponent;
   private api = inject(EvidenceApi);
 
 
@@ -28,7 +28,7 @@ export class EvidenceListComponent implements OnInit {
   totalPages = 0;
 
   getDetails(e: Evidence) {
-    this.detailComponent.evidenceDetail(e.id);
+    this.evidenceDetail.evidenceDetail(e.id);
   }
   ngOnInit() {
     this.load();

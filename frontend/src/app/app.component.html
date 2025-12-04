@@ -12,9 +12,9 @@
 
        <div class="spacer"></div>
 
-       <form class="search" *ngIf="auth.isAuthed$ | async" (submit)="$event.preventDefault()">
-         <input type="search" placeholder="Search evidence…" aria-label="Search evidence">
-       </form>
+<!--       <form class="search" *ngIf="auth.isAuthed$ | async" (submit)="$event.preventDefault()">-->
+<!--         <input type="search" placeholder="Search evidence…" aria-label="Search evidence">-->
+<!--       </form>-->
 
        <nav class="top-nav">
          <a *ngIf="!(auth.isAuthed$ | async)" routerLink="/login" class="btn ghost">Login</a>
@@ -31,13 +31,13 @@
        <aside class="sidebar" [class.open]="sidebarOpen()">
          <nav class="nav">
            <a routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()">
-             Convert
+             Generate Metadata Package
            </a>
            <a *ngIf="auth.isAuthed$ | async"
               routerLink="/evidence"
               routerLinkActive="active"
               (click)="closeSidebar()">
-             Evidence
+             Your Evidence
            </a>
            <a routerLink="/legal" routerLinkActive="active" (click)="closeSidebar()">
              Laws & Guidance
