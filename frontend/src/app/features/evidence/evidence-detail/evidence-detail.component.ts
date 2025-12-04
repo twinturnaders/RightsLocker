@@ -1,5 +1,5 @@
 import {Component, inject, signal, computed, OnInit, Input} from '@angular/core';
-import { AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe } from '@angular/common';
+import {AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe, NgOptimizedImage} from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
 import { switchMap } from 'rxjs/operators';
@@ -13,7 +13,7 @@ import {map, of} from 'rxjs';
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [NgIf, RouterLink, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe],
+  imports: [NgIf, RouterLink, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe, NgOptimizedImage],
   templateUrl: './evidence-detail.component.html',
   styleUrls: ['./evidence-detail.component.css']
 })
@@ -37,6 +37,7 @@ export class EvidenceDetailComponent implements OnInit {
       .pipe(switchMap(id => this.api.get(id)))
       .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
         error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
+    this.evidenceDetail(this.id);
   }
 
   evidenceDetail(id: string) {

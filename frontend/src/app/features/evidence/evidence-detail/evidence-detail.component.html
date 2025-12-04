@@ -21,7 +21,7 @@
   <ng-container *ngIf="!loading() && evidence() as ev">
     <div class="grid">
       <div class="left">
-        <img *ngIf="thumbSrc()" [src]="thumbSrc()!" alt="thumbnail" class="thumb"/>
+        <img *ngIf="thumbSrc()" ngSrc="thumbSrc()" alt="thumbnail" class="thumb" fill/>
 
         <div class="card">
           <h2>{{ ev.title || 'Untitled' }}</h2>
