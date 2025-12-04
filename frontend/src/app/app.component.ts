@@ -14,7 +14,7 @@ import {LogoComponent} from './core/logo/logo.component';
 })
 export class AppComponent {
 
-  public auth = inject(AuthService);
+  auth = inject(AuthService);
   sidebarOpen = signal(false);
 
   toggleSidebar() { this.sidebarOpen.update(v => !v); }
