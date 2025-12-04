@@ -10,11 +10,11 @@ import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.compon
   templateUrl: 'evidence-list.component.html',
   styleUrls: ['evidence-list.component.css']
 })
-export class EvidenceListComponent implements OnInit, AfterViewInit {
+export class EvidenceListComponent implements OnInit{
 
   @ViewChild(EvidenceDetailComponent)
   evidenceDetail!: EvidenceDetailComponent;
-  private api = inject(EvidenceApi);
+  protected api = inject(EvidenceApi);
 
 
   @Output() selected = new EventEmitter<Evidence>();
@@ -34,10 +34,7 @@ export class EvidenceListComponent implements OnInit, AfterViewInit {
     this.evidenceDetail.evidenceDetail(e.id);
   }
 
-  ngAfterViewInit(): void {
 
-this.load();
-  }
   ngOnInit() {
     this.load();
   }
