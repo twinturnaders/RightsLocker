@@ -21,17 +21,21 @@ export const routes: Routes = [
   { path: 'convert', loadComponent: () => import('./features/evidence/convert/convert.component').then(m => m.ConvertComponent) },
   { path: 'evidence', loadComponent: () => import('./features/evidence/evidence-page/evidence-page.component').then(m => m.EvidencePageComponent) },
   { path: 'login', loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) },
-
   { path:'register', loadComponent:()=>import('./features/auth/register/register.component').then(m=>m.RegisterComponent) },
   { path: 'evidence', component: EvidencePageComponent,
   children: [
-    {path: '', component: EvidenceListComponent},
-  ]},
-  { path: 'evidence/:id', component: EvidenceDetailRouteWrapper,
-  children: [
-    { path: '', component: EvidenceDetailComponent },
+    {path: 'list', redirectTo: 'evidence', component: EvidenceListComponent,
+      children:
+    [{ path: 'evidence/:id', component: EvidenceDetailRouteWrapper,
+      children: [
+        { path: 'detail', component: EvidenceDetailComponent },
+      ]},
+
+    ]},
   ]},
 
+
+  { path: 'detail', redirectTo:'evidence/:id', pathMatch:'full' },
   { path: 'convert', redirectTo: 'evidence' },
   { path:'**', redirectTo:'home' }
 ];
