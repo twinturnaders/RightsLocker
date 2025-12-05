@@ -2,6 +2,8 @@ import { Routes, provideRouter } from '@angular/router';
 import {EvidencePageComponent} from './features/evidence/evidence-page/evidence-page.component';
 import {HomeComponent} from './features/home/home.component';
 import {PrivacyComponent} from './features/legal/privacy/privacy.component';
+import {EvidenceDetailRouteWrapper} from './features/evidence/evidence-detail/evidence-detail.route-wrapper';
+import {EvidenceDetailComponent} from './features/evidence/evidence-detail/evidence-detail.component';
 
 
 export const routes: Routes = [
@@ -20,7 +22,10 @@ export const routes: Routes = [
 
   { path:'register', loadComponent:()=>import('./features/auth/register/register.component').then(m=>m.RegisterComponent) },
   { path: 'evidence', component: EvidencePageComponent },
-  { path: 'evidence/:id', loadComponent: () => import('./features/evidence/evidence-detail/evidence-detail.component').then(m => m.EvidenceDetailComponent) },
+  { path: 'evidence/:id', component: EvidenceDetailRouteWrapper,
+  children: [
+    { path: '', component: EvidenceDetailComponent },
+  ]},
   { path: 'convert', redirectTo: 'evidence' },
   { path:'**', redirectTo:'home' }
 ];

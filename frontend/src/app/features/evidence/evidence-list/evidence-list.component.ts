@@ -79,6 +79,6 @@ export class EvidenceListComponent implements OnInit{
 
   pick(e: Evidence) {
     this.selected.emit((e));
-    this.detailComponent.evidenceDetail(e.id);
+    this.getDetails(e)
   }
 }
