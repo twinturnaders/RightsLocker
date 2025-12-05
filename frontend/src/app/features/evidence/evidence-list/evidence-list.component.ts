@@ -6,19 +6,18 @@ import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.compon
 @Component({
   standalone: true,
   selector: 'rl-evidence-list',
-  imports: [NgFor, NgIf, DatePipe],
+  imports: [NgFor, NgIf, DatePipe, EvidenceDetailComponent],
   templateUrl: 'evidence-list.component.html',
   styleUrls: ['evidence-list.component.css']
 })
 export class EvidenceListComponent implements OnInit{
 
-  // @ViewChild(EvidenceDetailComponent)
-  // evidenceDetail!: EvidenceDetailComponent;
+
   protected api = inject(EvidenceApi);
 
 
   @Output() selected = new EventEmitter<Evidence>();
-  @ViewChild(EvidenceDetailComponent) detailComponent!: EvidenceDetailComponent;
+
 
   evidence: Evidence[] = [];
   id: string = '';
@@ -30,10 +29,7 @@ export class EvidenceListComponent implements OnInit{
   pageSize = 10;
   totalPages = 0;
 
-  getDetails(e: Evidence) {
 
-    this.detailComponent.evidenceDetail(e.id);
-  }
 
 
   ngOnInit() {
@@ -79,6 +75,8 @@ export class EvidenceListComponent implements OnInit{
 
   pick(e: Evidence) {
     this.selected.emit((e));
-    this.getDetails(e)
+
   }
+
+  protected readonly onclick = onclick;
 }

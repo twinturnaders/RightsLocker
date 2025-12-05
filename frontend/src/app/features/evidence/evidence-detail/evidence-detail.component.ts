@@ -1,4 +1,4 @@
-import {Component, inject, signal, computed, OnInit, Input, AfterViewInit} from '@angular/core';
+import {Component, inject, signal, computed, OnInit, Input, AfterViewInit, Output, EventEmitter} from '@angular/core';
 import {AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe, NgOptimizedImage} from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
@@ -8,7 +8,7 @@ import { DurationMsPipe } from '../../../core/pipes/duration.pipe';
 import { environment } from '../../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../core/auth.service';
-import {map, of} from 'rxjs';
+import {map, Observable, of} from 'rxjs';
 
 @Component({
   standalone: true,
@@ -38,7 +38,7 @@ export class EvidenceDetailComponent implements OnInit {
   error = signal<string>('');
 
   @Input() id!: string;
-
+  @Output() details = new EventEmitter<Evidence>();
   ngOnInit(){
     (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
       .pipe(switchMap(id => this.api.get(id)))
@@ -47,14 +47,17 @@ export class EvidenceDetailComponent implements OnInit {
 
   }
 
+
   evidenceDetail(id: string) {
     this.api.get(id).subscribe((evidence) => {
       this.evidence.set(evidence); this.loading.set(false);
+      return this.details.emit(evidence);
     })
   }
   thumbSrc = computed(() => {
     const ev = this.evidence(); if (!ev) return null;
     return this.api.thumbUrlById(ev.id, ev.thumbnailKey);
+
   });
 
   canDelete(ev: Evidence) {

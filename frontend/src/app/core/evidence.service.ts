@@ -84,6 +84,7 @@ export class EvidenceApi {
     return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`,{});
   }
 
+
   download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
     const params = new HttpParams().set('type', type);
     return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
