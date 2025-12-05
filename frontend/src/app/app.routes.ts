@@ -4,6 +4,8 @@ import {HomeComponent} from './features/home/home.component';
 import {PrivacyComponent} from './features/legal/privacy/privacy.component';
 import {EvidenceDetailRouteWrapper} from './features/evidence/evidence-detail/evidence-detail.route-wrapper';
 import {EvidenceDetailComponent} from './features/evidence/evidence-detail/evidence-detail.component';
+import {EvidenceListComponent} from './features/evidence/evidence-list/evidence-list.component';
+import * as path from 'node:path';
 
 
 export const routes: Routes = [
@@ -21,11 +23,15 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) },
 
   { path:'register', loadComponent:()=>import('./features/auth/register/register.component').then(m=>m.RegisterComponent) },
-  { path: 'evidence', component: EvidencePageComponent },
+  { path: 'evidence', component: EvidencePageComponent,
+  children: [
+    {path: '', component: EvidenceListComponent},
+  ]},
   { path: 'evidence/:id', component: EvidenceDetailRouteWrapper,
   children: [
     { path: '', component: EvidenceDetailComponent },
   ]},
+
   { path: 'convert', redirectTo: 'evidence' },
   { path:'**', redirectTo:'home' }
 ];

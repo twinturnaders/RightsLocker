@@ -77,6 +77,4 @@ export class EvidenceListComponent implements OnInit{
     this.selected.emit((e));
 
   }
-
-  protected readonly onclick = onclick;
 }
