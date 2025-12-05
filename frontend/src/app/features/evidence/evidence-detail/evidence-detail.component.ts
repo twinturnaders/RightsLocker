@@ -17,14 +17,14 @@ import {map, of} from 'rxjs';
   templateUrl: './evidence-detail.component.html',
   styleUrls: ['./evidence-detail.component.css']
 })
-export class EvidenceDetailComponent implements AfterViewInit {
-  ngAfterViewInit(): void {
-    (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
-      .pipe(switchMap(id => this.api.get(id)))
-      .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
-        error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
-
-  }
+export class EvidenceDetailComponent implements OnInit {
+  // ngAfterViewInit(): void {
+  //   (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
+  //     .pipe(switchMap(id => this.api.get(id)))
+  //     .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
+  //       error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
+  //
+  // }
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
@@ -39,13 +39,13 @@ export class EvidenceDetailComponent implements AfterViewInit {
 
   @Input() id!: string;
 
-  // ngOnInit(){
-  //   (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
-  //     .pipe(switchMap(id => this.api.get(id)))
-  //     .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
-  //       error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
-  //
-  // }
+  ngOnInit(){
+    (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
+      .pipe(switchMap(id => this.api.get(id)))
+      .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
+        error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
+
+  }
 
   evidenceDetail(id: string) {
     this.api.get(id).subscribe((evidence) => {

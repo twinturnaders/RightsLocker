@@ -18,6 +18,7 @@ export class EvidenceListComponent implements OnInit{
 
 
   @Output() selected = new EventEmitter<Evidence>();
+  @ViewChild(EvidenceDetailComponent) detailComponent!: EvidenceDetailComponent;
 
   evidence: Evidence[] = [];
   id: string = '';
@@ -29,10 +30,10 @@ export class EvidenceListComponent implements OnInit{
   pageSize = 10;
   totalPages = 0;
 
-  // getDetails(e: Evidence) {
-  //   this.pick(e)
-  //   this.evidenceDetail.evidenceDetail(e.id);
-  // }
+  getDetails(e: Evidence) {
+
+    this.detailComponent.evidenceDetail(e.id);
+  }
 
 
   ngOnInit() {
@@ -78,5 +79,6 @@ export class EvidenceListComponent implements OnInit{
 
   pick(e: Evidence) {
     this.selected.emit((e));
+    this.detailComponent.evidenceDetail(e.id);
   }
 }

@@ -18,7 +18,7 @@
   <div *ngIf="loading()">Loading…</div>
   <div *ngIf="error()">{{ error() }}</div>
 
-  <ng-container *ngIf="!loading() && evidence() as ev">
+  <ng-container *ngIf="!loading() && evidence() as ev" evidenceDetail(ev)>
     <div class="grid">
       <div class="left">
         <img *ngIf="thumbSrc()" ngSrc="thumbSrc()" alt="thumbnail" class="thumb" fill/>
