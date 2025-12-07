@@ -67,6 +67,7 @@ public class EvidenceController {
                                   @RequestParam(defaultValue = "20") int size) {
 
         AppUser user = principalService.requireUser(principal);
+
         Pageable paging = PageRequest.of(page, size);
         return ResponseEntity.ok(evidenceService.list(user, paging));
     }
@@ -79,7 +80,7 @@ public class EvidenceController {
         Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        return new ResponseEntity<>(evidenceService.getDetails(ev), HttpStatus.OK);
+        return new ResponseEntity<>(evidenceService.getDetailsDTO(ev), HttpStatus.OK);
     }
 
     /* presign upload (public) */

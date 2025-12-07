@@ -90,22 +90,60 @@ public class EvidenceService {
         }
     }
 
-    public Page<Evidence> list(AppUser owner, Pageable pageable){
+    public Page<EvidenceDetailsDto> list(AppUser owner, Pageable pageable){
         UUID ownerId = owner.getId();
         AppUser user = appUserRepo.findById(ownerId).orElse(null);
         if (user != null) {
-            OwnerDto ownerInfo = getOwnerDTO(user);
 
-
-
-            return repo.findByOwner(ownerInfo, pageable);
+            Page<Evidence> ev = repo.findByOwner(user, pageable);
+            return getPageDetailsDTO(owner, pageable);
         }
         else{
             return null;
         }
     }
 
-    public EvidenceDetailsDto getDetails(Evidence ev) {
+    public Page<EvidenceDetailsDto> getPageDetailsDTO(AppUser owner, Pageable pageable) {
+
+      Page<Evidence> ev = repo.findByOwner(owner, pageable);
+        return ev.map(evidence -> new EvidenceDetailsDto(
+                evidence.getId(), getOwnerDTO(evidence.getOwner()), evidence.getTitle(),
+
+                evidence.getDescription(),
+                evidence.getCapturedAt(),
+                evidence.getCaptureLatlon(),
+                evidence.getCaptureAccuracyM(),
+                evidence.getStatus() == EvidenceStatus.RECEIVED,
+                evidence.getOriginalSha256(),
+                evidence.getOriginalSizeB(),
+                evidence.getOriginalKey(),
+                evidence.getDerivativeKey(),
+                evidence.getThumbnailKey(),
+                evidence.getRedactedKey(),
+                evidence.getRedactedSize(),
+                evidence.getLegalHold(),
+                evidence.getCreatedAt(),
+                evidence.getUpdatedAt(),
+                evidence.getExifDateOriginal(),
+                evidence.getTzOffsetMinutes(),
+                evidence.getCaptureAltitudeM(),
+                evidence.getCaptureHeadingDeg(),
+                evidence.getCameraMake(),
+                evidence.getCameraModel(),
+                evidence.getLensModel(),
+                evidence.getSoftware(),
+                evidence.getWidthPx(),
+                evidence.getHeightPx(),
+                evidence.getOrientationDeg(),
+                evidence.getContainer(),
+                evidence.getVideoCodec(),
+                evidence.getAudioCodec(),
+                evidence.getDurationMs(),
+                evidence.getVideoFps(),
+                evidence.getVideoRotationDeg()));
+
+    }
+    public EvidenceDetailsDto getDetailsDTO(Evidence ev) {
         return new EvidenceDetailsDto(ev.getId(), getOwnerDTO(ev.getOwner()), ev.getTitle(),
 
                 ev.getDescription(),
@@ -141,6 +179,7 @@ public class EvidenceService {
                 ev.getVideoFps(),
                 ev.getVideoRotationDeg());
     }
+
     public OwnerDto getOwnerDTO(AppUser owner) {
         return new OwnerDto(owner.getId(), owner.getEmail(), owner.getDisplayName(), owner.getRole());
     }
