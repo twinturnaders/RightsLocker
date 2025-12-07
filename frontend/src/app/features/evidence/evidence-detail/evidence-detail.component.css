@@ -18,3 +18,14 @@
   opacity: .6;
   cursor: not-allowed;
 }
+.thumb-container {
+  position: relative;
+  width: 260px;
+  height: 180px;
+  margin-bottom: 1rem;
+}
+
+.thumb-container img {
+  object-fit: contain; /* or cover */
+  border-radius: 8px;
+}
