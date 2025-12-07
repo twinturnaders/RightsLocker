@@ -86,15 +86,16 @@ export class AnonComponent {
       }).toPromise();
 
 
-      // if (ev?.shareToken) {
+      if (ev?.shareToken) {
         this.readyUrl = `${this.base}/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
         this.ok = true; this.msg = 'Ready!'; this.uploading = false;
         // Optionally show metadata PDF
         this.metaPdfUrl = `${this.base}/share/${ev.shareToken}/metadata.pdf`;
-      // } else {
-        // // Fallback for authed flow
-        // this.readyUrl = `${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
-      // }
+      } else {
+        // Fallback for authed flow
+        this.readyUrl = `${this.base}/share/${ev.shareToken}/package?type=redacted`;
+        this.metaPdfUrl = `${this.base}/share/${ev.shareToken}/metadata.pdf`;
+      }
       const fin = await this.api.finalize({
         key: this.key,
         title: this.title,
