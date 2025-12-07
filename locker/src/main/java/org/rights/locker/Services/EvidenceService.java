@@ -1,8 +1,12 @@
 package org.rights.locker.Services;
 
 import lombok.RequiredArgsConstructor;
+
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.rights.locker.DTOs.EvidenceDetailsDto;
+import org.rights.locker.DTOs.EvidenceSummaryDto;
+import org.rights.locker.DTOs.OwnerDto;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
@@ -13,7 +17,6 @@ import org.rights.locker.Enums.JobType;
 import org.rights.locker.Repos.AppUserRepo;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.ProcessingJobRepo;
-import org.rights.locker.Security.UserPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,9 @@ public class EvidenceService {
     private final GeometryFactory gf = new GeometryFactory();
     private final S3Presigner s3Presigner;
     private final AppUserRepo appUserRepo;
+    private EvidenceSummaryDto summary;
+    private EvidenceDetailsDto details;
+    private OwnerDto owner;
 
     public Evidence upload(MultipartFile file, String title, String description, java.time.Instant capturedAt, Double lat, Double lon, Double accuracy){
         try (InputStream in = file.getInputStream()){
@@ -88,13 +94,56 @@ public class EvidenceService {
         UUID ownerId = owner.getId();
         AppUser user = appUserRepo.findById(ownerId).orElse(null);
         if (user != null) {
-            return repo.findByOwner(user, pageable);
+            OwnerDto ownerInfo = getOwnerDTO(user);
+
+
+
+            return repo.findByOwner(ownerInfo, pageable);
         }
         else{
             return null;
         }
     }
 
+    public EvidenceDetailsDto getDetails(Evidence ev) {
+        return new EvidenceDetailsDto(ev.getId(), getOwnerDTO(ev.getOwner()), ev.getTitle(),
+
+                ev.getDescription(),
+                ev.getCapturedAt(),
+                ev.getCaptureLatlon(),
+                ev.getCaptureAccuracyM(),
+                ev.getStatus() == EvidenceStatus.RECEIVED,
+                ev.getOriginalSha256(),
+                ev.getOriginalSizeB(),
+                ev.getOriginalKey(),
+                ev.getDerivativeKey(),
+                ev.getThumbnailKey(),
+                ev.getRedactedKey(),
+                ev.getRedactedSize(),
+                ev.getLegalHold(),
+                ev.getCreatedAt(),
+                ev.getUpdatedAt(),
+                ev.getExifDateOriginal(),
+                ev.getTzOffsetMinutes(),
+                ev.getCaptureAltitudeM(),
+                ev.getCaptureHeadingDeg(),
+                ev.getCameraMake(),
+                ev.getCameraModel(),
+                ev.getLensModel(),
+                ev.getSoftware(),
+                ev.getWidthPx(),
+                ev.getHeightPx(),
+                ev.getOrientationDeg(),
+                ev.getContainer(),
+                ev.getVideoCodec(),
+                ev.getAudioCodec(),
+                ev.getDurationMs(),
+                ev.getVideoFps(),
+                ev.getVideoRotationDeg());
+    }
+    public OwnerDto getOwnerDTO(AppUser owner) {
+        return new OwnerDto(owner.getId(), owner.getEmail(), owner.getDisplayName(), owner.getRole());
+    }
     public String getKey(Optional<Evidence> item) {
         return item.map(Evidence::getOriginalKey).orElse(null);
     }

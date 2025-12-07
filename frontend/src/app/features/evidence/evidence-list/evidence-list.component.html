@@ -10,9 +10,17 @@
       <span class="badge">{{e.status}}</span>
     </div>
     <div class="meta">
-      Captured: {{e.capturedAt | date }} •
-      Legal hold: {{e.legalHold ? 'Yes' : 'No'}}
+      Captured:
+      <ng-container *ngIf="normalizeDate(e.capturedAt) as cap; else noCap">
+        {{ cap | date:'mediumDate' }}
+      </ng-container>
+      <ng-template #noCap>—</ng-template>
+      • Legal hold:
+      {{ e.legalHold === true ? 'Yes'
+      : e.legalHold === false ? 'No'
+        : '—' }}
     </div>
+
   </div>
 </div>
 

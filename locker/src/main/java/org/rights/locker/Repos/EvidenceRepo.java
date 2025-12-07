@@ -1,6 +1,7 @@
 package org.rights.locker.Repos;
 
 
+import org.rights.locker.DTOs.OwnerDto;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.springframework.data.domain.Page;
@@ -8,7 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,7 +20,7 @@ import java.util.UUID;
         Optional<Evidence> findByIdAndOwner(UUID id, AppUser owner);
 
 
-        Page<Evidence> findByOwner(AppUser owner, Pageable pageable);
+        Page<Evidence> findByOwner(OwnerDto owner, Pageable pageable);
 
 
     }

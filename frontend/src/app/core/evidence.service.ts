@@ -29,7 +29,8 @@ export interface Evidence {
   legalHold?: boolean | null;
 
   // rich metadata
-  exifDateOriginal?: string | null;   // ISO
+
+  exifDateOriginal?: string | number | null;  // ISO
   tzOffsetMinutes?: number | null;
   captureAltitudeM?: number | null;
   captureHeadingDeg?: number | null;

@@ -2,6 +2,7 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.Entities.AppUser;
@@ -71,13 +72,14 @@ public class EvidenceController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Evidence> get(@PathVariable UUID id,
-                                        @AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<EvidenceDetailsDto> get(@PathVariable UUID id,
+                                                  @AuthenticationPrincipal UserPrincipal principal) {
         principalService.requireUser(principal); // only checks auth; you can also enforce ownership later
 
         Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return new ResponseEntity<>(ev, HttpStatus.OK);
+
+        return new ResponseEntity<>(evidenceService.getDetails(ev), HttpStatus.OK);
     }
 
     /* presign upload (public) */

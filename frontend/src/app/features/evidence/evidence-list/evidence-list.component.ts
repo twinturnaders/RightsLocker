@@ -29,6 +29,18 @@ export class EvidenceListComponent implements OnInit{
   pageSize = 10;
   totalPages = 0;
 
+// in EvidenceListComponent
+  normalizeDate(value: string | number | null | undefined): string | number | null {
+    if (value == null) return null;
+
+    if (typeof value === 'number') {
+      // backend sends seconds (with fractions) → convert to ms
+      return value * 1000;
+    }
+
+    // assume it's already an ISO string
+    return value;
+  }
 
 
 
