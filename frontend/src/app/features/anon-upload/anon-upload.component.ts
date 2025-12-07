@@ -85,16 +85,16 @@ export class AnonComponent {
         key:this.key, title:this.title, description:'Public convert', capturedAtIso:null
       }).toPromise();
 
-// If anonymous, backend returns shareToken (you coded this). Use it.
-      if (ev?.shareToken) {
+
+      // if (ev?.shareToken) {
         this.readyUrl = `${this.base}/share/${ev.shareToken}/package?type=redacted`; // downloadable ZIP
         this.ok = true; this.msg = 'Ready!'; this.uploading = false;
         // Optionally show metadata PDF
         this.metaPdfUrl = `${this.base}/share/${ev.shareToken}/metadata.pdf`;
-      } else {
-        // Fallback for authed flow
-        this.readyUrl = `${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
-      }
+      // } else {
+        // // Fallback for authed flow
+        // this.readyUrl = `${this.base}/evidence/${ev.id}/package?type=redacted&includeThumb=true`;
+      // }
       const fin = await this.api.finalize({
         key: this.key,
         title: this.title,
