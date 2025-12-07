@@ -18,10 +18,10 @@
   <div *ngIf="loading()">Loading…</div>
   <div *ngIf="error()">{{ error() }}</div>
 
-  <ng-container *ngIf="!loading() && evidence() as ev" evidenceDetail(ev)>
+  <ng-container *ngIf="!loading() && evidence() as ev">
     <div class="grid">
       <div class="left">
-        <img *ngIf="thumbSrc()" ngSrc="thumbSrc()" alt="thumbnail" class="thumb" fill/>
+        <img *ngIf="thumbSrc()" [ngSrc]="thumbSrc()" alt="thumbnail" class="thumb" fill />
 
         <div class="card">
           <h2>{{ ev.title || 'Untitled' }}</h2>

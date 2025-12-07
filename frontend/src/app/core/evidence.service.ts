@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import {SafeValue} from '@angular/platform-browser';
 
 
 export interface Evidence {
@@ -120,16 +121,12 @@ export class EvidenceApi {
   }
 
 
-  thumbUrlById(id?: string | null, key?: string | null) {
-    // Only build a URL if we actually have BOTH id and thumbnail key
-    if (!id || !key) {
-      return null;
-    }
-    else {
-      let params = new HttpParams();
-      params.append('key', encodeURIComponent(id));
-      params.append('key', encodeURIComponent(key));
-      return this.http.get(`${this.base}/thumb`,{params:params});
-    }
+  thumbUrlById(id?: string | null, key?: string | null): string | SafeValue {
+    if (!id || !key) return SafeArray;
+    const params = new HttpParams()
+      .set('id', id)
+      .set('key', key);
+    return `${this.base}/thumb?${params.toString()}`;
   }
+
 }

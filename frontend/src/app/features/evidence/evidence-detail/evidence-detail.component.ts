@@ -1,62 +1,61 @@
-import {Component, inject, signal, computed, OnInit, Input, AfterViewInit, Output, EventEmitter} from '@angular/core';
-import {AsyncPipe, DatePipe, NgIf, NgFor, DecimalPipe, NgOptimizedImage} from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
-import { switchMap } from 'rxjs/operators';
-import { BytesPipe } from '../../../core/pipes/bytes.pipe';
-import { DurationMsPipe } from '../../../core/pipes/duration.pipe';
-import { environment } from '../../../../environments/environment';
+import { Component, inject, signal, computed, Input } from '@angular/core';
+import { EvidenceApi, Evidence } from '../../../core/evidence.service';
 import { HttpClient } from '@angular/common/http';
-import { AuthService } from '../../../core/auth.service';
-import {map, Observable, of} from 'rxjs';
+import {Router, RouterLink} from '@angular/router';
+import { environment } from '../../../../environments/environment';
+import {DatePipe, DecimalPipe, NgIf, NgOptimizedImage} from '@angular/common';
+import {BytesPipe} from '../../../core/pipes/bytes.pipe';
+import {DurationMsPipe} from '../../../core/pipes/duration.pipe';
+import {SafeValue} from '@angular/platform-browser';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [NgIf, RouterLink, DatePipe, BytesPipe, DurationMsPipe, DecimalPipe, NgOptimizedImage],
+  imports: [
+    DatePipe,
+    BytesPipe,
+    NgIf,
+    DurationMsPipe,
+    DecimalPipe,
+    NgOptimizedImage,
+    RouterLink,
+    /* ... */],
   templateUrl: './evidence-detail.component.html',
   styleUrls: ['./evidence-detail.component.css']
 })
-export class EvidenceDetailComponent implements OnInit {
-  // ngAfterViewInit(): void {
-  //   (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
-  //     .pipe(switchMap(id => this.api.get(id)))
-  //     .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
-  //       error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
-  //
-  // }
+export class EvidenceDetailComponent {
   private http = inject(HttpClient);
-  private auth = inject(AuthService);
-  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(EvidenceApi);
-  base = `${environment.apiBase}/evidence`
+  base = `${environment.apiBase}/evidence`;
 
   evidence = signal<Evidence | null>(null);
-  loading = signal(true);
+  loading = signal(false);
   deleting = signal(false);
   error = signal<string>('');
 
-  @Input() id!: string;
-  @Output() details = new EventEmitter<Evidence>();
-  ngOnInit(){
-    (this.id ? of(this.id) : this.route.paramMap.pipe(map(p=>p.get('id')!)))
-      .pipe(switchMap(id => this.api.get(id)))
-      .subscribe({ next: ev => { this.evidence.set(ev); this.loading.set(false); },
-        error: err => { this.error.set(err?.error?.message || 'Failed to load'); this.loading.set(false); }});
-
+  @Input() set id(value: string | undefined) {
+    if (!value) return;
+    this.load(value);
   }
 
-
-  evidenceDetail(id: string) {
-    this.api.get(id).subscribe((evidence) => {
-      this.evidence.set(evidence); this.loading.set(false);
-      return this.details.emit(evidence);
-    })
+  private load(id: string) {
+    this.loading.set(true);
+    this.error.set('');
+    this.api.get(id).subscribe({
+      next: ev => {
+        this.evidence.set(ev);
+        this.loading.set(false);
+      },
+      error: err => {
+        this.error.set(err?.error?.message || 'Failed to load');
+        this.loading.set(false);
+      }
+    });
   }
-  thumbSrc = computed(() => {
-    const ev = this.evidence(); if (!ev) return null;
-    return this.api.thumbUrlById(ev.id, ev.thumbnailKey);
+  thumbSrc = computed(():string | SafeValue => {
+    const ev = this.evidence(); if (!ev) { return SafeArray;}
+    else{ return this.api.thumbUrlById(ev.id, ev.thumbnailKey);}
 
   });
 
