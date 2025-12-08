@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, Input } from '@angular/core';
+import {Component, inject, signal, computed, Input, WritableSignal} from '@angular/core';
 import { EvidenceApi, Evidence } from '../../../core/evidence.service';
 import { HttpClient } from '@angular/common/http';
 import {Router, RouterLink} from '@angular/router';
@@ -28,7 +28,7 @@ export class EvidenceDetailComponent {
   private router = inject(Router);
   private api = inject(EvidenceApi);
   base = `${environment.apiBase}/evidence`;
-
+  showSuccessMessage: WritableSignal<boolean> = signal(false);
   evidence = signal<Evidence | null>(null);
   loading = signal(false);
   deleting = signal(false);
@@ -70,7 +70,8 @@ export class EvidenceDetailComponent {
 
     this.deleting.set(true);
     this.http.delete(`${this.base}/${ev.id}`).subscribe({
-      next: () => this.router.navigateByUrl('/evidence'),
+      next: () => this.router.navigateByUrl(`${this.base}`),
+
       error: e => {
         alert(e?.error?.message || 'Delete failed');
         this.deleting.set(false);

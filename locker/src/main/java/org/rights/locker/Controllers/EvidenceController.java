@@ -2,6 +2,7 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.rights.locker.DTOs.CurrentUserDTO;
 import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
@@ -15,6 +16,7 @@ import org.rights.locker.Enums.JobType;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.MetadataService;
 import org.rights.locker.Repos.ProcessingJobRepo;
+import org.rights.locker.Security.CurrentUser;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +59,7 @@ public class EvidenceController {
     private final MetadataService metadataService;
     private final EvidenceService evidenceService;
     private final UserPrincipalService principalService;
+    private final UserService userService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -242,7 +245,8 @@ public class EvidenceController {
                                              @PathVariable boolean legalHold,
                                              @AuthenticationPrincipal UserPrincipal principal) {
 
-        AppUser user = principalService.requireUser(principal);
+        principalService.requireUser(principal);
+        AppUser user = userService.getAppUser(principal.getId());
 
         var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -263,8 +267,8 @@ public class EvidenceController {
     public void deleteEvidence(@PathVariable UUID id,
                                @AuthenticationPrincipal UserPrincipal principal) {
 
-        AppUser user = principalService.requireUser(principal);
-
+        principalService.requireUser(principal);
+        AppUser user = userService.getAppUser(principal.getId());
         var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
