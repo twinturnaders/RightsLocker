@@ -1,7 +1,9 @@
-<div class="wrap">
-  <div class="hdr">
-    <a routerLink="/evidence" class="link">&larr; Back to list</a>
-    <h1>Evidence details</h1>
+<section class="detail-shell stack-lg">
+  <div class="detail-header">
+    <div class="stack-sm">
+      <a routerLink="/evidence" class="detail-back">← Back to list</a>
+      <h1>Evidence details</h1>
+    </div>
 
     <ng-container *ngIf="!loading() && evidence() as ev">
       <button
@@ -15,30 +17,33 @@
     </ng-container>
   </div>
 
-  <div *ngIf="loading()">Loading…</div>
-  <div *ngIf="error()">{{ error() }}</div>
+  <div *ngIf="loading()" class="status-note">Loading…</div>
+  <div *ngIf="error()" class="status-note">{{ error() }}</div>
 
   <ng-container *ngIf="!loading() && evidence() as ev">
-    <div class="grid">
-      <div class="left">
-        <div class="thumb-container" *ngIf="thumbSrc()">
-          <img [ngSrc]="thumbSrc()" alt="thumbnail" fill />
+    <div class="detail-layout">
+      <div class="stack-lg">
+        <div class="detail-preview card" *ngIf="thumbSrc()">
+          <div class="thumb-container">
+            <img [ngSrc]="thumbSrc()" alt="thumbnail" fill />
+          </div>
         </div>
 
+        <div class="card stack-md">
+          <div class="stack-sm">
+            <h2>{{ ev.title || 'Untitled' }}</h2>
+            <p class="body-muted" *ngIf="ev.description">{{ ev.description }}</p>
+          </div>
 
-        <div class="card">
-          <h2>{{ ev.title || 'Untitled' }}</h2>
-          <p class="muted" *ngIf="ev.description">{{ ev.description }}</p>
-
-          <div class="chips">
+          <div class="row">
             <span class="chip" [class.ok]="ev.status==='READY'" [class.warn]="ev.status==='PROCESSING'">{{ ev.status || '—' }}</span>
             <span class="chip danger" *ngIf="ev.legalHold">Legal hold</span>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card stack-sm">
           <h3>Integrity</h3>
-          <table class="kv">
+          <table class="kv-table">
             <tr><th>Original SHA-256</th><td><code class="mono">{{ ev.originalSha256 || '—' }}</code></td></tr>
             <tr><th>Original size</th><td>{{ ev.originalSizeB | bytes }}</td></tr>
             <tr><th>Ingested at</th><td>{{ ev.createdAt | date:'medium':'UTC' }}</td></tr>
@@ -49,10 +54,10 @@
         </div>
       </div>
 
-      <div class="right">
-        <div class="card">
+      <div class="stack-lg">
+        <div class="card stack-sm">
           <h3>Capture</h3>
-          <table class="kv">
+          <table class="kv-table">
             <tr><th>Location</th><td>{{ ev.captureLatlon || '—' }}</td></tr>
             <tr><th>Accuracy</th><td>{{ ev.captureAccuracyM != null ? (ev.captureAccuracyM + ' m') : '—' }}</td></tr>
             <tr><th>Altitude</th><td>{{ ev.captureAltitudeM != null ? (ev.captureAltitudeM + ' m') : '—' }}</td></tr>
@@ -60,9 +65,9 @@
           </table>
         </div>
 
-        <div class="card">
+        <div class="card stack-sm">
           <h3>Camera / Image</h3>
-          <table class="kv">
+          <table class="kv-table">
             <tr><th>Make / Model</th><td>{{ ev.cameraMake || '—' }} {{ ev.cameraModel || '' }}</td></tr>
             <tr *ngIf="ev.lensModel"><th>Lens</th><td>{{ ev.lensModel }}</td></tr>
             <tr><th>Software</th><td>{{ ev.software || '—' }}</td></tr>
@@ -71,9 +76,9 @@
           </table>
         </div>
 
-        <div class="card" *ngIf="hasVideo(ev)">
+        <div class="card stack-sm" *ngIf="hasVideo(ev)">
           <h3>Video</h3>
-          <table class="kv">
+          <table class="kv-table">
             <tr><th>Container</th><td>{{ ev.container || '—' }}</td></tr>
             <tr><th>Video codec</th><td>{{ ev.videoCodec || '—' }}</td></tr>
             <tr><th>Audio codec</th><td>{{ ev.audioCodec || '—' }}</td></tr>
@@ -85,4 +90,4 @@
       </div>
     </div>
   </ng-container>
-</div>
+</section>

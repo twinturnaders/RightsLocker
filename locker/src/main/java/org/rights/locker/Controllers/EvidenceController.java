@@ -6,6 +6,7 @@ import org.rights.locker.DTOs.CurrentUserDTO;
 import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
+import org.rights.locker.DTOs.AuthenticityAssessment;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
@@ -57,6 +58,7 @@ public class EvidenceController {
     private final StorageService storage;
     private final ShareService shareService;
     private final MetadataService metadataService;
+    private final AuthenticityAssessmentService authenticityAssessmentService;
     private final EvidenceService evidenceService;
     private final UserPrincipalService principalService;
     private final UserService userService;
@@ -140,6 +142,11 @@ public class EvidenceController {
         try { meta = metadataService.extractFromUrl(originalUrl); }
         catch (Exception e){ log.warn("metadata extraction failed: {}", e.toString()); }
 
+        AuthenticityAssessment authenticityAssessment = authenticityAssessmentService.assess(meta);
+        if (meta != null) {
+            meta = meta.withAuthenticityAssessment(authenticityAssessment);
+        }
+
         Instant capturedAt = parseInstant(req.capturedAtIso());
         var ev = Evidence.builder()
                 .title(req.title())
@@ -171,6 +178,12 @@ public class EvidenceController {
             ev.setVideoFps(meta.videoFps());
             ev.setVideoRotationDeg(meta.videoRotationDeg());
         }
+
+        ev.setProvenanceStatus(authenticityAssessment.provenanceStatus());
+        ev.setMetadataIntegrity(authenticityAssessment.metadataIntegrity());
+        ev.setSyntheticMediaRisk(authenticityAssessment.syntheticMediaRisk());
+        ev.setManipulationSignals(authenticityAssessment.manipulationSignals());
+        ev.setAssessmentSummary(authenticityAssessment.assessmentSummary());
 
         String redactMode = (req.redactMode() == null || req.redactMode().isBlank())
                 ? "BLUR" : req.redactMode().toUpperCase();

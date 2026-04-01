@@ -6,10 +6,15 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.locationtech.jts.geom.Point;
 import org.rights.locker.Enums.EvidenceStatus;
+import org.rights.locker.Enums.MetadataIntegrity;
+import org.rights.locker.Enums.ProvenanceStatus;
+import org.rights.locker.Enums.SyntheticMediaRisk;
+import org.rights.locker.Utilities.StringListJsonConverter;
 
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -136,6 +141,26 @@ public class Evidence {
 
     @Column(name = "video_rotation_deg")
     private Integer videoRotationDeg;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provenance_status")
+    private ProvenanceStatus provenanceStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metadata_integrity")
+    private MetadataIntegrity metadataIntegrity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "synthetic_media_risk")
+    private SyntheticMediaRisk syntheticMediaRisk;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(name = "manipulation_signals", columnDefinition = "TEXT")
+    private List<String> manipulationSignals;
+
+    @Column(name = "assessment_summary", columnDefinition = "TEXT")
+    private String assessmentSummary;
+
     public void setRedactedSizeB(Long outputSizeB) {
     }
 

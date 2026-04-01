@@ -1,7 +1,10 @@
-<div class="container">
-  <section class="hero">
-    <h1>Preserve proof. Protect privacy.</h1>
-    <p class="sub">Create a verifiable evidence package—SHA-256 hashes, chain of custody, and a printable report.</p>
+<div class="container page-shell">
+  <section class="hero home-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">RightsLocker</p>
+      <h1>Preserve proof. Protect privacy.</h1>
+      <p class="sub">Create a verifiable evidence package with SHA-256 hashes, chain of custody, and a clear export package for human review.</p>
+    </div>
 
     <anon-convert></anon-convert>
 
@@ -12,42 +15,42 @@
     </div>
   </section>
 
-  <section class="how">
-    <h2>How it works</h2>
+  <section class="card section-stack">
+    <div class="page-header">
+      <p class="eyebrow">Workflow</p>
+      <h2>How it works</h2>
+    </div>
+
     <ol class="steps">
-      <li><strong>Add your files</strong> – drag & drop or browse.</li>
-      <li>
-        <strong>Choose protections</strong> – metadata stripping and redaction tools.
-        <!-- Face blur is planned; leaving commented until enabled. -->
-        <!-- <em>(Face-blur available)</em> -->
-      </li>
-      <li><strong>Download your package</strong> – originals + derivatives + printable report (hashes, steps, timestamps).</li>
+      <li><strong>Add your file.</strong> Upload a photo or video for processing.</li>
+      <li><strong>Generate a review package.</strong> RightsLocker extracts metadata, computes hashes, and prepares the package.</li>
+      <li><strong>Export and share.</strong> Download the processed file, metadata PDF, and supporting integrity details.</li>
     </ol>
   </section>
 
-  <section class="trust grid">
-    <div class="card">
+  <section class="grid grid-3">
+    <article class="card feature-card">
       <h3>Integrity</h3>
-      <p>We compute SHA-256 for the original and each derivative. Matching hashes = unchanged content.</p>
-    </div>
-    <div class="card">
+      <p>We compute SHA-256 for the original and derivative assets so exports can be validated later.</p>
+    </article>
+    <article class="card feature-card">
       <h3>Chain of custody</h3>
-      <p>We log timestamps, versions, and actions to create a tamper-evident activity trail.</p>
-    </div>
-    <div class="card">
+      <p>RightsLocker records timestamps and processing events to support a defensible review trail.</p>
+    </article>
+    <article class="card feature-card">
       <h3>Transparency</h3>
-      <p>Download a printable report to share with counsel, investigators, or the court.</p>
-    </div>
+      <p>Each package includes metadata and reporting artifacts that are easy to review and export.</p>
+    </article>
   </section>
 
-  <section class="modes grid">
-    <div class="card">
-      <h3>Processing-only (default)</h3>
-      <p class="help">Upload → process → download. We auto-delete within 24 hours.</p>
-    </div>
-    <div class="card">
-      <h3>Hosted Locker (opt-in)</h3>
-      <p class="help">We retain files per your retention policy. You can enable legal hold and share links.</p>
-    </div>
+  <section class="grid grid-2">
+    <article class="card">
+      <h3>Processing only</h3>
+      <p class="help">Upload, process, and download. Files are removed automatically unless legal hold is enabled.</p>
+    </article>
+    <article class="card">
+      <h3>Hosted locker</h3>
+      <p class="help">Authenticated users can retain evidence, enable legal hold, and work from the evidence dashboard.</p>
+    </article>
   </section>
 </div>

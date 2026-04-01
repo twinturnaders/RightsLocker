@@ -1,45 +1,54 @@
-<div class="container">
-  <div class="hero">
-    <h1>Fast, private redaction</h1>
-    <p>Upload, auto-blur faces (optional), and download a verifiable package. No account required.</p>
-    <div class="badge">*Uploaded videos are auto-deleted from the server after 24 hours unless "Legal Hold" box is checked.</div>
+<section class="section-stack">
+  <div class="hero upload-hero">
+    <div class="stack-sm">
+      <p class="eyebrow">Evidence Processing</p>
+      <h1>Generate a review-ready evidence package</h1>
+      <p class="sub">Upload a file, preserve metadata, and export supporting materials in a clean, predictable workflow.</p>
+    </div>
+    <div class="badge info">Files are auto-deleted after 24 hours unless legal hold is enabled.</div>
   </div>
 
-  <div class="card form" style="margin-top:12px">
-    <h2>Upload</h2>
-    <label class="label"> File </label>
-    <input type="file" (change)="pick($event)"/>
-
-<!--    <div class="row" style="margin-top:10px;align-items:center">-->
-<!--      <label class="label" style="margin:0">Check box to auto-blur faces</label>-->
-<!--      <input type="checkbox" [(ngModel)]="blur"/>-->
-<!--    </div>-->
-    <div>
-      <label class="label" style="margin:0">
-        <input type="checkbox" [(ngModel)]="hold" [disabled]="!auth.token"/>
-        Enable Legal Hold (prevents 24 hour auto-deletion)-- Stored in hosted locker- Can be manually deleted from your account
-      </label>
+  <div class="card stack-lg">
+    <div class="page-header">
+      <h2>Upload</h2>
+      <p class="section-subtitle">Select a file and choose whether it should remain in the hosted locker.</p>
     </div>
 
-    <!-- Progress bar -->
-    <div class="bar" *ngIf="uploading">
-      <div class="bar-fill" [style.width.%]="progress"></div>
+    <div class="stack-sm">
+      <label class="label" for="evidence-file">File</label>
+      <input id="evidence-file" type="file" (change)="pick($event)" />
     </div>
-    <div class="bar-text" *ngIf="uploading">{{progress}}%</div>
 
+    <label class="hold-toggle">
+      <input type="checkbox" [(ngModel)]="hold" [disabled]="!auth.token"/>
+      <span>
+        <strong>Enable legal hold</strong>
+        <span class="help">Prevents automatic deletion and keeps the file in the hosted locker until you remove it.</span>
+      </span>
+    </label>
 
-    <div class="row" style="margin-top:12px">
+    <div class="stack-sm" *ngIf="uploading">
+      <div class="progress">
+        <div class="progress-bar" [style.width.%]="progress"></div>
+      </div>
+      <div class="status-note">{{ progress }}% uploaded</div>
+    </div>
+
+    <div class="actions">
       <button class="btn primary" (click)="start()" [disabled]="!file || uploading">Start</button>
-      <button class="btn ghost" (click)="reset()" [disabled]="uploading">Reset</button>
+      <button class="btn secondary" (click)="reset()" [disabled]="uploading">Reset</button>
     </div>
 
-    <div *ngIf="readyUrl" class="card" style="margin-top:12px">
-      <h3 style="margin:0 0 8px">Download</h3>
-      <p class="help">Your package contains the processed media, hashes, metadata, a printable report, and a metadata PDF.</p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <a class="btn" [href]="readyUrl">Download package</a>
-        <a class="btn ghost" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank">View metadata PDF</a>
+    <div *ngIf="readyUrl" class="panel panel-muted stack-md">
+      <div class="stack-sm">
+        <h3>Download</h3>
+        <p class="help">Your package contains the processed media, hash values, extracted metadata, and a printable metadata PDF.</p>
+      </div>
+
+      <div class="actions">
+        <a class="btn primary" [href]="readyUrl">Download package</a>
+        <a class="btn secondary" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank">View metadata PDF</a>
       </div>
     </div>
   </div>
-</div>
+</section>

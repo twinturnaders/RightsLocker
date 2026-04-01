@@ -94,6 +94,17 @@ public class PDFBuilderService {
                 line(cs, "Rotation (deg)", s(m,"videoRotationDeg"));
                 cs.newLine();
 
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                cs.showText("Authenticity Assessment");
+                cs.setFont(PDType1Font.HELVETICA, 11);
+                cs.newLine();
+                line(cs, "Provenance Status", s(m,"provenanceStatus"));
+                line(cs, "Metadata Integrity", s(m,"metadataIntegrity"));
+                line(cs, "Synthetic Media Risk", s(m,"syntheticMediaRisk"));
+                line(cs, "Manipulation Signals", s(m,"manipulationSignals"));
+                line(cs, "Assessment Summary", s(m,"assessmentSummary"));
+                cs.newLine();
+
                 // access/share context if present
                 if (m.containsKey("shareToken")) {
                     cs.setFont(PDType1Font.HELVETICA_BOLD, 12);

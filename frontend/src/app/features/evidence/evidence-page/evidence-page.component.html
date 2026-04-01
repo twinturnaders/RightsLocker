@@ -1,12 +1,21 @@
-<div class="grid grid-2">
-  <div class="col">
-    <app-convert (uploaded)="onUploaded($event)"></app-convert>
-    <div style="height:12px"></div>
-    <rl-evidence-list (selected)="onPicked($event)"></rl-evidence-list>
+<section class="section-stack">
+  <div class="page-header">
+    <p class="eyebrow">Dashboard</p>
+    <h1>Your evidence</h1>
+    <p>Manage uploads, review metadata, and export evidence packages from a single workspace.</p>
   </div>
 
-  <div class="col">
-    <rl-evidence-detail *ngIf="selectedId" [id]="selectedId"></rl-evidence-detail>
-    <div *ngIf="!selectedId" class="card help">Select an evidence item to view details.</div>
+  <div class="dashboard-layout">
+    <div class="stack-lg">
+      <app-convert (uploaded)="onUploaded($event)"></app-convert>
+      <rl-evidence-list (selected)="onPicked($event)"></rl-evidence-list>
+    </div>
+
+    <div>
+      <rl-evidence-detail *ngIf="selectedId" [id]="selectedId"></rl-evidence-detail>
+      <div *ngIf="!selectedId" class="empty-state">
+        Select an evidence item to view its metadata, integrity details, and status.
+      </div>
+    </div>
   </div>
-</div>
+</section>

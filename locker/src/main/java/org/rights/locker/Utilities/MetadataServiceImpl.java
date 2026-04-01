@@ -130,6 +130,7 @@ public class MetadataServiceImpl implements MetadataService {
                 w, h, orientation,
                 null, null, null,
                 null, null, rot,
+                null,
                 MediaMetadata.safeRaw(raw)
         );
     }
@@ -190,6 +191,7 @@ public class MetadataServiceImpl implements MetadataService {
                 w, h, rotation,
                 container, vCodec, aCodec,
                 durationMs, fps, rotation,
+                null,
                 MediaMetadata.safeRaw(raw)
         );
     }
@@ -245,6 +247,7 @@ public class MetadataServiceImpl implements MetadataService {
                 nz(a.durationMs(),  b.durationMs()),
                 nz(a.videoFps(),    b.videoFps()),
                 nz(a.videoRotationDeg(), b.videoRotationDeg()),
+                nz(a.authenticityAssessment(), b.authenticityAssessment()),
                 MediaMetadata.safeRaw(raw)
         );
     }

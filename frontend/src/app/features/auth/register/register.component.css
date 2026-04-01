@@ -1,11 +1,5 @@
 @import '../login/login.component.css';
-.auth-card{
-  box-shadow: 0 3px 8px rgb(43, 48, 43);
+
+.auth-actions {
+  justify-content: flex-start;
 }
-
-.input { padding:.6rem .7rem; border:1px solid #c6d2cd; border-radius:.5rem; font:inherit; background-color: #ccd0d0}
-
-.error { color:#b42318; margin:.5rem 0; }
-
-.btn { margin-top:.25rem; display:inline-flex; align-items:center; justify-content:center; padding:.6rem .9rem; border-radius:.5rem; border:1px solid #1b1e1b; background: #ffffff; color: #1b1e1b; }
-

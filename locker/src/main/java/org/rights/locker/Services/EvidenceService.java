@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Point;
 import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.EvidenceSummaryDto;
 import org.rights.locker.DTOs.OwnerDto;
+import org.rights.locker.DTOs.AuthenticityAssessment;
 import org.rights.locker.Entities.AppUser;
 import org.rights.locker.Entities.Evidence;
 import org.rights.locker.Entities.ProcessingJob;
@@ -140,7 +141,8 @@ public class EvidenceService {
                 evidence.getAudioCodec(),
                 evidence.getDurationMs(),
                 evidence.getVideoFps(),
-                evidence.getVideoRotationDeg()));
+                evidence.getVideoRotationDeg(),
+                authenticityAssessmentOf(evidence)));
 
     }
     public EvidenceDetailsDto getDetailsDTO(Evidence ev) {
@@ -177,7 +179,8 @@ public class EvidenceService {
                 ev.getAudioCodec(),
                 ev.getDurationMs(),
                 ev.getVideoFps(),
-                ev.getVideoRotationDeg());
+                ev.getVideoRotationDeg(),
+                authenticityAssessmentOf(ev));
     }
 
     public OwnerDto getOwnerDTO(AppUser owner) {
@@ -185,5 +188,15 @@ public class EvidenceService {
     }
     public String getKey(Optional<Evidence> item) {
         return item.map(Evidence::getOriginalKey).orElse(null);
+    }
+
+    private static AuthenticityAssessment authenticityAssessmentOf(Evidence evidence) {
+        return new AuthenticityAssessment(
+                evidence.getProvenanceStatus(),
+                evidence.getMetadataIntegrity(),
+                evidence.getSyntheticMediaRisk(),
+                evidence.getManipulationSignals(),
+                evidence.getAssessmentSummary()
+        );
     }
 }

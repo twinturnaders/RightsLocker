@@ -31,6 +31,9 @@ public record MediaMetadata(
         Double  videoFps,         // frames per second
         Integer videoRotationDeg, // 0/90/180/270
 
+        // heuristic authenticity signals
+        AuthenticityAssessment authenticityAssessment,
+
         // debug / pass-through raw tags
         Map<String,Object> raw
 ) {
@@ -39,7 +42,18 @@ public record MediaMetadata(
                 null, null, null, null, null, null,
                 null, null, null, null, null, null, null,
                 null, null, null, null, null, null,
+                null,
                 Collections.emptyMap()
+        );
+    }
+
+    public MediaMetadata withAuthenticityAssessment(AuthenticityAssessment authenticityAssessment) {
+        return new MediaMetadata(
+                dateOriginal, tzMinutes, lat, lon, altitudeM, headingDeg,
+                cameraMake, cameraModel, lensModel, software, widthPx, heightPx, orientationDeg,
+                container, videoCodec, audioCodec, durationMs, videoFps, videoRotationDeg,
+                authenticityAssessment,
+                raw
         );
     }
 

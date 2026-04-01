@@ -1,34 +1,42 @@
-<div class="container">
-  <div class="auth-card">
-    <h2>Create your account</h2>
-    <form class="form" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="label">Email</label>
-      <input class="input" formControlName="email" type="email" placeholder="you@example.com" id="email">
-      <div *ngIf="email.invalid && (email.dirty || email.touched)">Valid email required</div>
+<div class="container auth-page">
+  <div class="auth-card card stack-lg">
+    <div class="page-header">
+      <p class="eyebrow">Account</p>
+      <h1>Create your account</h1>
+      <p>Set up a RightsLocker account to retain evidence, enable legal hold, and manage share access.</p>
+    </div>
 
-
-      <label class="label">Display name</label>
-      <input class="input" formControlName="displayName" placeholder="Your name" id="displayName">
-
-
-      <label class="label">Password</label>
-      <input class="input" formControlName="password" type="password" placeholder="••••••••" id="password">
-
-
-      <label class="label">Confirm password</label>
-      <input class="input" formControlName="confirm" type="password" placeholder="••••••••" id="passwordVerify">
-      <div *ngIf="form.errors?.['mismatch'] && (form.dirty || form.touched)" style="color:var(--err)">Passwords do not match</div>
-
-
-      <div class="row" style="display:flex;gap:8px;align-items:center;margin-top:12px">
-        <button class="btn" type="submit" [disabled]="form.invalid || loading">Create account</button>
-        <a routerLink="/login" class="btn">Back to login</a>
-        <span style="margin-left:auto;color:var(--err)" *ngIf="error">{{error}}</span>
-        <p class="muted small">
-          Already have an account?
-          <a routerLink="/login">Sign in</a>
-        </p>
+    <form class="stack-md" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-field">
+        <label class="label" for="email">Email</label>
+        <input class="input" formControlName="email" type="email" placeholder="you@example.com" id="email">
+        <div class="error" *ngIf="email.invalid && (email.dirty || email.touched)">Valid email required.</div>
       </div>
+
+      <div class="form-field">
+        <label class="label" for="displayName">Display name</label>
+        <input class="input" formControlName="displayName" placeholder="Your name" id="displayName">
+      </div>
+
+      <div class="form-field">
+        <label class="label" for="password">Password</label>
+        <input class="input" formControlName="password" type="password" placeholder="Enter a password" id="password">
+      </div>
+
+      <div class="form-field">
+        <label class="label" for="passwordVerify">Confirm password</label>
+        <input class="input" formControlName="confirm" type="password" placeholder="Confirm your password" id="passwordVerify">
+        <div class="error" *ngIf="form.errors?.['mismatch'] && (form.dirty || form.touched)">Passwords do not match.</div>
+      </div>
+
+      <p class="error" *ngIf="error">{{ error }}</p>
+
+      <div class="actions auth-actions">
+        <button class="btn primary" type="submit" [disabled]="form.invalid || loading">Create account</button>
+        <a routerLink="/login" class="btn secondary">Back to login</a>
+      </div>
+
+      <p class="auth-footnote">Already have an account? <a routerLink="/login">Sign in</a></p>
     </form>
   </div>
 </div>

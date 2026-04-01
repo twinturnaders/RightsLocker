@@ -66,6 +66,6 @@ public record EvidenceDetailsDto(
         String audioCodec,
         Long durationMs,
         Double videoFps,
-
-        Integer videoRotationDeg
+        Integer videoRotationDeg,
+        AuthenticityAssessment authenticityAssessment
 ) {}

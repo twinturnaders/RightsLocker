@@ -1,36 +1,35 @@
-<div class="container">
-
-  <div class="card form" style="margin-top:12px">
+<section class="upload-panel card stack-lg">
+  <div class="page-header">
     <h2>Upload</h2>
-    <label class="label"> File </label>
-    <input type="file" (change)="pick($event)"/>
+    <p class="section-subtitle">Add a file and generate a metadata package for download.</p>
+  </div>
 
-<!--    <div class="row" style="margin-top:10px;align-items:center">-->
-<!--      <label class="label" style="margin:0">Check box to auto-blur faces</label>-->
-<!--      <input type="checkbox" [(ngModel)]="blur"/>-->
-<!--    </div>-->
+  <div class="stack-sm">
+    <label class="label" for="anon-file">File</label>
+    <input id="anon-file" type="file" (change)="pick($event)" />
+  </div>
 
-<!--    <input type="file" (change)="pick($event)"/>-->
-
-    <!-- Progress bar -->
-    <div class="bar" *ngIf="uploading">
-      <div class="bar-fill" [style.width.%]="progress"></div>
+  <div class="stack-sm" *ngIf="uploading">
+    <div class="progress">
+      <div class="progress-bar" [style.width.%]="progress"></div>
     </div>
-    <div class="bar-text" *ngIf="uploading">{{progress}}%</div>
+    <div class="status-note">{{ progress }}% uploaded</div>
+  </div>
 
+  <div class="actions">
+    <button class="btn primary" (click)="start()" [disabled]="!file || uploading">Start</button>
+    <button class="btn secondary" (click)="reset()" [disabled]="uploading">Reset</button>
+  </div>
 
-    <div class="row" style="margin-top:12px">
-      <button class="btn primary" (click)="start()" [disabled]="!file || uploading">Start</button>
-      <button class="btn ghost" (click)="reset()" [disabled]="uploading">Reset</button>
+  <div *ngIf="readyUrl" class="panel panel-muted stack-md">
+    <div class="stack-sm">
+      <h3>Download</h3>
+      <p class="help">Your package includes the processed media, hashes, extracted metadata, and a printable PDF report.</p>
     </div>
 
-    <div *ngIf="readyUrl" class="card" style="margin-top:12px">
-      <h3 style="margin:0 0 8px">Download</h3>
-      <p class="help">Your package contains the processed media, hashes, metadata, a printable report, and a metadata PDF.</p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <a class="btn" [href]="readyUrl" target="_blank" rel="noopener">Download package</a>
-        <a class="btn ghost" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank" rel="noopener">View metadata PDF</a>
-      </div>
+    <div class="actions">
+      <a class="btn primary" [href]="readyUrl" target="_blank" rel="noopener">Download package</a>
+      <a class="btn secondary" *ngIf="metaPdfUrl" [href]="metaPdfUrl" target="_blank" rel="noopener">View metadata PDF</a>
     </div>
   </div>
-</div>
+</section>

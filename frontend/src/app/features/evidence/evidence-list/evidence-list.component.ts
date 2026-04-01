@@ -1,48 +1,37 @@
-import {Component, EventEmitter, Output, inject, OnInit, ViewChild, AfterViewInit} from '@angular/core';
-import {EvidenceApi, Evidence, Page} from '../../../core/evidence.service';
-import {DatePipe, NgFor, NgIf} from '@angular/common';
-import {EvidenceDetailComponent} from '../evidence-detail/evidence-detail.component';
+import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core';
+import { DatePipe, NgFor, NgIf } from '@angular/common';
+import { EvidenceApi, Evidence, Page } from '../../../core/evidence.service';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-list',
-  imports: [NgFor, NgIf, DatePipe, EvidenceDetailComponent],
+  imports: [NgFor, NgIf, DatePipe],
   templateUrl: 'evidence-list.component.html',
   styleUrls: ['evidence-list.component.css']
 })
-export class EvidenceListComponent implements OnInit{
-
-
+export class EvidenceListComponent implements OnInit {
   protected api = inject(EvidenceApi);
-
 
   @Output() selected = new EventEmitter<Evidence>();
 
-
   evidence: Evidence[] = [];
-  id: string = '';
+  id = '';
   loading = false;
   error = '';
-
-  // backend `Page` is almost always zero-based, so start at 0
   currentPage = 0;
   pageSize = 10;
   totalPages = 0;
 
-// in EvidenceListComponent
   normalizeDate(value: string | number | null | undefined): string | number | null {
     if (value == null) return null;
 
     if (typeof value === 'number') {
-      // backend sends seconds (with fractions) → convert to ms
+      // Backend sends epoch seconds; Angular DatePipe expects milliseconds.
       return value * 1000;
     }
 
-    // assume it's already an ISO string
     return value;
   }
-
-
 
   ngOnInit() {
     this.load();
@@ -86,7 +75,6 @@ export class EvidenceListComponent implements OnInit{
   }
 
   pick(e: Evidence) {
-    this.selected.emit((e));
-
+    this.selected.emit(e);
   }
 }

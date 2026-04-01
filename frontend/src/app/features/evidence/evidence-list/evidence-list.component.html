@@ -1,37 +1,38 @@
-<h2>Evidence</h2>
-
-<div *ngIf="loading">Loading…</div>
-<div *ngIf="error" class="help">{{error}}</div>
-
-<div class="grid" *ngIf="!loading && !error && evidence && evidence.length">
-  <div class="card" *ngFor="let e of evidence" (click)="pick(e)" style="cursor:pointer">
-    <div class="row">
-      <div class="title">{{e.title || 'Untitled'}}</div>
-      <span class="badge">{{e.status}}</span>
-    </div>
-    <div class="meta">
-      Captured:
-      <ng-container *ngIf="normalizeDate(e.capturedAt) as cap; else noCap">
-        {{ cap | date:'mediumDate' }}
-      </ng-container>
-      <ng-template #noCap>—</ng-template>
-      • Legal hold:
-      {{ e.legalHold === true ? 'Yes'
-      : e.legalHold === false ? 'No'
-        : '—' }}
-    </div>
-
+<section class="card stack-lg">
+  <div class="page-header list-header">
+    <h2>Evidence</h2>
+    <p class="section-subtitle">Recent uploads and retained files in your locker.</p>
   </div>
-</div>
 
-<div *ngIf="!loading && !error && (!evidence || !evidence.length)" class="help">
-  No evidence yet.
-</div>
+  <div *ngIf="loading" class="status-note">Loading…</div>
+  <div *ngIf="error" class="status-note">{{ error }}</div>
 
-<div class="row" style="margin-top:8px" *ngIf="totalPages > 1">
-  <button class="btn" (click)="prev()" [disabled]="currentPage === 0">Prev</button>
-  <div class="spacer"></div>
-  <span>Page {{currentPage + 1}} / {{totalPages}}</span>
-  <div class="spacer"></div>
-  <button class="btn" (click)="next()" [disabled]="currentPage >= totalPages - 1">Next</button>
-</div>
+  <div class="evidence-list" *ngIf="!loading && !error && evidence && evidence.length">
+    <button class="evidence-item" type="button" *ngFor="let e of evidence" (click)="pick(e)">
+      <div class="row">
+        <div class="evidence-item__title">{{ e.title || 'Untitled' }}</div>
+        <span class="badge info">{{ e.status }}</span>
+      </div>
+      <div class="evidence-item__meta">
+        <span>
+          Captured:
+          <ng-container *ngIf="normalizeDate(e.capturedAt) as cap; else noCap">
+            {{ cap | date:'mediumDate' }}
+          </ng-container>
+          <ng-template #noCap>—</ng-template>
+        </span>
+        <span>Legal hold: {{ e.legalHold === true ? 'Yes' : e.legalHold === false ? 'No' : '—' }}</span>
+      </div>
+    </button>
+  </div>
+
+  <div *ngIf="!loading && !error && (!evidence || !evidence.length)" class="empty-state">
+    No evidence yet.
+  </div>
+
+  <div class="list-pagination" *ngIf="totalPages > 1">
+    <button class="btn secondary" (click)="prev()" [disabled]="currentPage === 0">Previous</button>
+    <span class="status-note">Page {{ currentPage + 1 }} of {{ totalPages }}</span>
+    <button class="btn secondary" (click)="next()" [disabled]="currentPage >= totalPages - 1">Next</button>
+  </div>
+</section>

@@ -1,0 +1,20 @@
+.upload-hero {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.hold-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.hold-toggle strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-soft);
+}

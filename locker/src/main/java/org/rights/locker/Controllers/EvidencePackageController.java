@@ -143,6 +143,12 @@ public class EvidencePackageController {
                 metadata.put("durationMs", ev.getDurationMs());
                 metadata.put("videoFps", ev.getVideoFps());
                 metadata.put("videoRotationDeg", ev.getVideoRotationDeg());
+                metadata.put("provenanceStatus", ev.getProvenanceStatus());
+                metadata.put("metadataIntegrity", ev.getMetadataIntegrity());
+                metadata.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+                metadata.put("manipulationSignals", ev.getManipulationSignals());
+                metadata.put("assessmentSummary", ev.getAssessmentSummary());
+                metadata.put("authenticityAssessment", authenticityAssessmentMap(ev));
 
                 putText(zip, "metadata.json", om.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
 
@@ -202,6 +208,15 @@ public class EvidencePackageController {
         return "";
     }
     private static String nullToDash(String s){ return (s == null || s.isBlank()) ? "-" : s; }
+    private static Map<String, Object> authenticityAssessmentMap(Evidence ev) {
+        var assessment = new LinkedHashMap<String, Object>();
+        assessment.put("provenanceStatus", ev.getProvenanceStatus());
+        assessment.put("metadataIntegrity", ev.getMetadataIntegrity());
+        assessment.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+        assessment.put("manipulationSignals", ev.getManipulationSignals());
+        assessment.put("assessmentSummary", ev.getAssessmentSummary());
+        return assessment;
+    }
     private static String safeFile(String name) {
         return name.replaceAll("[\\r\\n\\t\\\\/:*?\"<>|]", "_");
     }

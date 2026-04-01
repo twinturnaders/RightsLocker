@@ -82,6 +82,7 @@ public class ShareController {
         evidenceMap.put("audioCodec", ev.getAudioCodec());
         evidenceMap.put("durationMs", ev.getDurationMs());
         evidenceMap.put("videoFps", ev.getVideoFps());
+        evidenceMap.put("authenticityAssessment", authenticityAssessmentMap(ev));
 
         var linksMap = new LinkedHashMap<String,Object>();
         if (redactedUrl != null) linksMap.put("redactedUrl", redactedUrl);
@@ -132,6 +133,12 @@ public class ShareController {
         m.put("durationMs", ev.getDurationMs());
         m.put("videoFps", ev.getVideoFps());
         m.put("videoRotationDeg", ev.getVideoRotationDeg());
+        m.put("provenanceStatus", ev.getProvenanceStatus());
+        m.put("metadataIntegrity", ev.getMetadataIntegrity());
+        m.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+        m.put("manipulationSignals", ev.getManipulationSignals());
+        m.put("assessmentSummary", ev.getAssessmentSummary());
+        m.put("authenticityAssessment", authenticityAssessmentMap(ev));
 
         // share context
         m.put("shareToken", s.getToken());
@@ -229,6 +236,12 @@ public class ShareController {
         m.put("durationMs", ev.getDurationMs());
         m.put("videoFps", ev.getVideoFps());
         m.put("videoRotationDeg", ev.getVideoRotationDeg());
+        m.put("provenanceStatus", ev.getProvenanceStatus());
+        m.put("metadataIntegrity", ev.getMetadataIntegrity());
+        m.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+        m.put("manipulationSignals", ev.getManipulationSignals());
+        m.put("assessmentSummary", ev.getAssessmentSummary());
+        m.put("authenticityAssessment", authenticityAssessmentMap(ev));
         // share
         m.put("shareToken", s.getToken());
         m.put("shareAllowOriginal", s.isAllowOriginal());
@@ -242,6 +255,15 @@ public class ShareController {
         if (key == null || key.isBlank()) return null;
         var req = GetObjectRequest.builder().bucket(bucket).key(key).build();
         return presigner.presignGetObject(b -> b.signatureDuration(ttl).getObjectRequest(req)).url().toString();
+    }
+    private static Map<String, Object> authenticityAssessmentMap(Evidence ev) {
+        var assessment = new LinkedHashMap<String, Object>();
+        assessment.put("provenanceStatus", ev.getProvenanceStatus());
+        assessment.put("metadataIntegrity", ev.getMetadataIntegrity());
+        assessment.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+        assessment.put("manipulationSignals", ev.getManipulationSignals() == null ? java.util.List.of() : ev.getManipulationSignals());
+        assessment.put("assessmentSummary", ev.getAssessmentSummary());
+        return assessment;
     }
     private static String filenameForKey(String key) {
         int i = key.lastIndexOf('/');
