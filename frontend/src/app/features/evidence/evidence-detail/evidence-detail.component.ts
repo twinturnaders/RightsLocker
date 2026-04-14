@@ -1,97 +1,100 @@
-import {Component, inject, signal, computed, Input, WritableSignal} from '@angular/core';
-import { EvidenceApi, Evidence } from '../../../core/evidence.service';
-import { HttpClient } from '@angular/common/http';
-import {Router, RouterLink} from '@angular/router';
-import { environment } from '../../../../environments/environment';
-import {DatePipe, DecimalPipe, NgIf, NgOptimizedImage} from '@angular/common';
-import {BytesPipe} from '../../../core/pipes/bytes.pipe';
-import {DurationMsPipe} from '../../../core/pipes/duration.pipe';
-import {SafeValue} from '@angular/platform-browser';
+import { Component, EventEmitter, Input, Output, effect, inject, signal } from '@angular/core';
+import { DatePipe, NgIf, NgOptimizedImage } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { Evidence, EvidenceApi } from '../../../core/evidence.service';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [
-    DatePipe,
-    BytesPipe,
-    NgIf,
-    DurationMsPipe,
-    DecimalPipe,
-    NgOptimizedImage,
-    RouterLink,
-    /* ... */],
-  templateUrl: './evidence-detail.component.html',
-  styleUrls: ['./evidence-detail.component.css']
+  imports: [NgIf, RouterLink, NgOptimizedImage, DatePipe],
+  templateUrl: 'evidence-detail.component.html',
+  styleUrls: ['evidence-detail.component.css']
 })
 export class EvidenceDetailComponent {
-  private http = inject(HttpClient);
-  private router = inject(Router);
-  private api = inject(EvidenceApi);
-  base = `${environment.apiBase}/evidence`;
-  showSuccessMessage: WritableSignal<boolean> = signal(false);
+  protected api = inject(EvidenceApi);
+
+  @Input() id?: string;
+  @Output() deleted = new EventEmitter<string>();
+
   evidence = signal<Evidence | null>(null);
   loading = signal(false);
+  error = signal('');
   deleting = signal(false);
-  error = signal<string>('');
 
-  @Input() set id(value: string | undefined) {
-    if (!value) return;
-    this.load(value);
+  constructor() {
+    effect(() => {
+      const evidenceId = this.id;
+      if (!evidenceId) {
+        this.evidence.set(null);
+        return;
+      }
+      this.load(evidenceId);
+    });
   }
 
-  private load(id: string) {
+  load(id: string) {
     this.loading.set(true);
     this.error.set('');
+
     this.api.get(id).subscribe({
       next: ev => {
         this.evidence.set(ev);
         this.loading.set(false);
       },
       error: err => {
-        this.error.set(err?.error?.message || 'Failed to load');
+        this.error.set(err?.error?.message || 'Failed to load evidence');
         this.loading.set(false);
       }
     });
   }
-  thumbSrc = computed(():string | SafeValue => {
-    const ev = this.evidence(); if (!ev) { return SafeArray;}
-    else{ return this.api.thumbUrlById(ev.id, ev.thumbnailKey);}
 
-  });
-
-  canDelete(ev: Evidence) {
-    return !ev.legalHold; // block if on legal hold
+  thumbSrc() {
+    const ev = this.evidence();
+    return ev?.thumbnailUrl || (ev?.thumbnailKey ? this.api.thumbUrlById(ev.id, ev.thumbnailKey) : null);
   }
 
-  async onDelete(ev: Evidence) {
+  canDelete(ev: Evidence) {
+    return !ev.legalHold;
+  }
+
+  openPdf(ev: Evidence) {
+    window.open(ev.pdfUrl || this.api.sharePdfUrlById(ev.id), '_blank', 'noopener');
+  }
+
+  openZip(ev: Evidence) {
+    window.open(ev.zipUrl || `${this.api.base}/${ev.id}/download?type=original`, '_blank', 'noopener');
+  }
+
+  onDelete(ev: Evidence) {
     if (!this.canDelete(ev)) return;
-    const ok = confirm('Delete this evidence permanently? This cannot be undone.');
-    if (!ok) return;
+    if (!confirm(`Delete "${ev.title || 'Untitled'}"? This cannot be undone.`)) return;
 
     this.deleting.set(true);
-    this.http.delete(`${this.base}/${ev.id}`).subscribe({
-      next: () => this.router.navigateByUrl(`${this.base}`),
-
-      error: e => {
-        alert(e?.error?.message || 'Delete failed');
+    this.api.delete(ev.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.deleted.emit(ev.id);
+        this.evidence.set(null);
+      },
+      error: err => {
+        this.error.set(err?.error?.message || 'Failed to delete evidence');
         this.deleting.set(false);
       }
     });
   }
 
-  dimLabel(ev: Evidence){
-    if (ev.widthPx && ev.heightPx) return `${ev.widthPx} × ${ev.heightPx}px`;
-    return '—';
+  tzLabel(minutes: number | null | undefined): string {
+    if (minutes == null) return '—';
+    const hours = minutes / 60;
+    return hours >= 0 ? `UTC+${hours}` : `UTC${hours}`;
   }
 
-  tzLabel(mins?: number | null){
-    if (mins == null) return '—';
-    const sign = mins >= 0 ? '+' : '-';
-    const m = Math.abs(mins);
-    const hh = Math.floor(m/60).toString().padStart(2,'0');
-    const mm = (m%60).toString().padStart(2,'0');
-    return `UTC${sign}${hh}:${mm}`;
+  dimLabel(ev: Evidence): string {
+    if (ev.widthPx == null && ev.heightPx == null) return '—';
+    return `${ev.widthPx ?? '—'} × ${ev.heightPx ?? '—'} px`;
   }
 
-  hasVideo(ev: Evidence){ return !!(ev.container && (ev.videoCodec || ev.durationMs)); }
+  hasVideo(ev: Evidence): boolean {
+    return !!(ev.container || ev.videoCodec || ev.audioCodec || ev.durationMs != null || ev.videoFps != null || ev.videoRotationDeg != null);
+  }
 }

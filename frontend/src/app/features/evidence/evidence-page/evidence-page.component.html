@@ -8,11 +8,19 @@
   <div class="dashboard-layout">
     <div class="stack-lg">
       <app-convert (uploaded)="onUploaded($event)"></app-convert>
-      <rl-evidence-list (selected)="onPicked($event)"></rl-evidence-list>
+      <rl-evidence-list
+        (selected)="onPicked($event)"
+        (deleted)="onDeleted()">
+      </rl-evidence-list>
     </div>
 
     <div>
-      <rl-evidence-detail *ngIf="selectedId" [id]="selectedId"></rl-evidence-detail>
+      <rl-evidence-detail
+        *ngIf="selectedId"
+        [id]="selectedId"
+        (deleted)="onDeleted()">
+      </rl-evidence-detail>
+
       <div *ngIf="!selectedId" class="empty-state">
         Select an evidence item to view its metadata, integrity details, and status.
       </div>

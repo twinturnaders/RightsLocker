@@ -2,8 +2,6 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rights.locker.DTOs.CurrentUserDTO;
-import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.DTOs.AuthenticityAssessment;
@@ -17,7 +15,6 @@ import org.rights.locker.Enums.JobType;
 import org.rights.locker.Repos.EvidenceRepo;
 import org.rights.locker.Repos.MetadataService;
 import org.rights.locker.Repos.ProcessingJobRepo;
-import org.rights.locker.Security.CurrentUser;
 import org.rights.locker.Security.UserPrincipal;
 import org.rights.locker.Services.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +59,7 @@ public class EvidenceController {
     private final EvidenceService evidenceService;
     private final UserPrincipalService principalService;
     private final UserService userService;
+    private final PDFBuilderService pdfBuilderService;
 
     @Value("${app.s3.bucketOriginals}") private String bucketOriginals;
     @Value("${app.s3.bucketHot}") private String bucketHot;
@@ -72,23 +70,37 @@ public class EvidenceController {
                                   @RequestParam(defaultValue = "20") int size) {
 
         AppUser user = principalService.requireUser(principal);
-
         Pageable paging = PageRequest.of(page, size);
         return ResponseEntity.ok(evidenceService.list(user, paging));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EvidenceDetailsDto> get(@PathVariable UUID id,
-                                                  @AuthenticationPrincipal UserPrincipal principal) {
-        principalService.requireUser(principal); // only checks auth; you can also enforce ownership later
+    public ResponseEntity<?> get(@PathVariable UUID id,
+                                 @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.requireUser(principal);
 
         Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        return new ResponseEntity<>(evidenceService.getDetailsDTO(ev), HttpStatus.OK);
+        return ResponseEntity.ok(evidenceService.getDetailsDTO(ev));
     }
 
-    /* presign upload (public) */
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<Map<String, String>> pdf(@PathVariable UUID id,
+                                                   @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.requireUser(principal);
+
+        Evidence ev = evidenceRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (ev.getOriginalKey() == null || ev.getOriginalKey().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Original media is not available yet.");
+        }
+
+        String url = buildPdfUrl(ev.getId());
+        return ResponseEntity.ok(Map.of("url", url));
+    }
+
     public record PresignUploadReq(String filename, String contentType) {}
 
     @PostMapping("/presign-upload")
@@ -110,7 +122,6 @@ public class EvidenceController {
         }};
     }
 
-    /* finalize (public, but may have an authenticated user) */
     public record FinalizeReq(
             String key, String title, String description,
             String capturedAtIso, Double lat, Double lon, Double accuracy,
@@ -121,7 +132,6 @@ public class EvidenceController {
     public FinalizeResponse finalizeUpload(@RequestBody FinalizeReq req,
                                            @AuthenticationPrincipal UserPrincipal principal) throws Exception {
 
-        // SHA-256 + size
         String sha256; long size = 0;
         try (ResponseInputStream<GetObjectResponse> in = s3.getObject(b -> b.bucket(bucketOriginals).key(req.key()));
              InputStream is = in) {
@@ -131,13 +141,11 @@ public class EvidenceController {
             sha256 = HexFormat.of().formatHex(md.digest());
         }
 
-        // Presign so extractors can read
         var presigned = presigner.presignGetObject(b -> b
                 .signatureDuration(java.time.Duration.ofMinutes(5))
                 .getObjectRequest(r -> r.bucket(bucketOriginals).key(req.key())));
         String originalUrl = presigned.url().toString();
 
-        // Extract rich metadata
         MediaMetadata meta = null;
         try { meta = metadataService.extractFromUrl(originalUrl); }
         catch (Exception e){ log.warn("metadata extraction failed: {}", e.toString()); }
@@ -193,21 +201,14 @@ public class EvidenceController {
 
         ev = evidenceRepo.save(ev);
 
-        custody.record(ev,
-                currentUser,
-                CustodyEventType.RECEIVED,
-                Map.of("source", "presigned"));
+        custody.record(ev, currentUser, CustodyEventType.RECEIVED, Map.of("source", "presigned"));
 
-        // If anonymous, mint a 24h share link (original disabled)
         String shareToken = null;
         if (currentUser == null) {
-            var share = shareService.create(ev.getId(),
-                    Instant.now().plus(java.time.Duration.ofHours(24)),
-                    false);
+            var share = shareService.create(ev.getId(), Instant.now().plus(java.time.Duration.ofHours(24)), false);
             shareToken = share.getToken();
         }
 
-        // Enqueue processing
         var thumb = jobRepo.save(ProcessingJob.builder()
                 .evidence(ev).type(JobType.THUMBNAIL).status(JobStatus.QUEUED).attempts(0).build());
         processor.publish(thumb);
@@ -301,6 +302,10 @@ public class EvidenceController {
         deleteQuiet(bucketHot, ev.getDerivativeKey());
 
         evidenceRepo.delete(ev);
+    }
+
+    private String buildPdfUrl(UUID id) {
+        return "/api/share/pdf/" + id;
     }
 
     private void deleteQuiet(String bucket, String key) {

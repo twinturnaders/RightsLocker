@@ -7,23 +7,49 @@
   <div *ngIf="loading" class="status-note">Loading…</div>
   <div *ngIf="error" class="status-note">{{ error }}</div>
 
-  <div class="evidence-list" *ngIf="!loading && !error && evidence && evidence.length">
-    <button class="evidence-item" type="button" *ngFor="let e of evidence" (click)="pick(e)">
-      <div class="row">
-        <div class="evidence-item__title">{{ e.title || 'Untitled' }}</div>
-        <span class="badge info">{{ e.status }}</span>
+  <div class="evidence-grid" *ngIf="!loading && !error && evidence && evidence.length">
+    <article
+      class="evidence-card"
+      *ngFor="let e of evidence; trackBy: trackById"
+      (click)="pick(e)">
+
+      <div class="evidence-card__thumb" *ngIf="e.thumbnailUrl; else thumbPlaceholder">
+        <img [src]="e.thumbnailUrl" [alt]="e.title || 'Evidence thumbnail'" />
       </div>
-      <div class="evidence-item__meta">
-        <span>
-          Captured:
-          <ng-container *ngIf="normalizeDate(e.capturedAt) as cap; else noCap">
-            {{ cap | date:'mediumDate' }}
-          </ng-container>
-          <ng-template #noCap>—</ng-template>
-        </span>
-        <span>Legal hold: {{ e.legalHold === true ? 'Yes' : e.legalHold === false ? 'No' : '—' }}</span>
+
+      <ng-template #thumbPlaceholder>
+        <div class="evidence-card__thumb evidence-card__thumb--placeholder">
+          <span>No thumbnail</span>
+        </div>
+      </ng-template>
+
+      <div class="stack-sm evidence-card__body">
+        <div class="row evidence-card__topline">
+          <div>
+            <div class="evidence-card__title">{{ e.title || 'Untitled' }}</div>
+            <div class="body-muted clamp-2" *ngIf="e.description">{{ e.description }}</div>
+          </div>
+          <span class="badge info">{{ e.status || '—' }}</span>
+        </div>
+
+        <div class="evidence-card__meta">
+          <span>
+            Captured:
+            <ng-container *ngIf="normalizeDate(e.capturedAt) as cap; else noCap">
+              {{ cap | date:'mediumDate' }}
+            </ng-container>
+            <ng-template #noCap>—</ng-template>
+          </span>
+          <span>Legal hold: {{ e.legalHold === true ? 'Yes' : e.legalHold === false ? 'No' : '—' }}</span>
+        </div>
+
+        <div class="evidence-card__actions">
+          <button class="btn secondary" type="button" (click)="sharePdf(e, $event)">Share PDF</button>
+          <button class="btn secondary" type="button" (click)="downloadZip(e, $event)">Download ZIP</button>
+          <button class="btn danger" type="button" (click)="delete(e, $event)">Delete</button>
+        </div>
       </div>
-    </button>
+    </article>
   </div>
 
   <div *ngIf="!loading && !error && (!evidence || !evidence.length)" class="empty-state">

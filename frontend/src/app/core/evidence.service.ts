@@ -1,20 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
-import {SafeValue} from '@angular/platform-browser';
-
 
 export interface Evidence {
   id: string;
   title?: string | null;
   description?: string | null;
 
-  capturedAt?: string | null;   // ISO
-  createdAt?: string | null;    // ISO
-  updatedAt?: string | null;    // ISO
+  capturedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 
-  captureLatlon?: string | null;   // your format (e.g., "46.87,-113.99")
+  captureLatlon?: string | null;
   captureAccuracyM?: number | null;
 
   originalKey?: string | null;
@@ -25,12 +23,10 @@ export interface Evidence {
   redactedSize?: number | null;
   thumbnailKey?: string | null;
 
-  status?: 'RECEIVED'|'PROCESSING'|'READY'|'ERROR'|string;
+  status?: 'RECEIVED' | 'PROCESSING' | 'READY' | 'ERROR' | string;
   legalHold?: boolean | null;
 
-  // rich metadata
-
-  exifDateOriginal?: string | number | null;  // ISO
+  exifDateOriginal?: string | number | null;
   tzOffsetMinutes?: number | null;
   captureAltitudeM?: number | null;
   captureHeadingDeg?: number | null;
@@ -50,7 +46,19 @@ export interface Evidence {
   durationMs?: number | null;
   videoFps?: number | null;
   videoRotationDeg?: number | null;
+
+  provenanceStatus?: string | null;
+  metadataIntegrity?: string | null;
+  syntheticMediaRisk?: string | null;
+  manipulationSignals?: string | null;
+  assessmentSummary?: string | null;
+
+  pdfUrl?: string | null;
+  zipUrl?: string | null;
+  shareUrl?: string | null;
+  thumbnailUrl?: string | null;
 }
+
 export interface Page<T> {
   content: T[];
   totalElements: number;
@@ -60,9 +68,22 @@ export interface Page<T> {
   legalHold?: boolean;
 }
 
+export interface PresignResponse {
+  url: string;
+  key: string;
+}
+
+export interface FinalizeRequest {
+  key: string;
+  title: string;
+  description?: string;
+  capturedAtIso?: string;
+  redactMode?: 'NONE' | 'BLUR';
+}
+
 export interface FinalizeResponse {
   evidence: Evidence;
-  shareToken?: string | null; // present if anonymous
+  shareToken?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -70,64 +91,67 @@ export class EvidenceApi {
   private http = inject(HttpClient);
   base = `${environment.apiBase}/evidence`;
 
-  list( page: number, pageSize: number) {
-   let params = new HttpParams()
-   .set('page', page)
-     .set('pageSize', pageSize)
-    return this.http.get<Page<Evidence>>(`${this.base}`, { params });
+  list(page: number, pageSize: number) {
+    const params = new HttpParams()
+      .set('page', page)
+      .set('size', pageSize);
+
+    return this.http.get<Page<Evidence>>(this.base, { params }).pipe(
+      map(pageResult => ({
+        ...pageResult,
+        content: pageResult.content.map(ev => this.enrichEvidence(ev))
+      }))
+    );
   }
 
   get(id: string): Observable<Evidence> {
-    return this.http.get<Evidence>(`${this.base}/${id}`);
+    return this.http.get<Evidence>(`${this.base}/${id}`).pipe(
+      map(ev => this.enrichEvidence(ev))
+    );
   }
 
+  delete(id: string) {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  presignUpload(filename: string, contentType: string): Observable<PresignResponse> {
+    return this.http.post<PresignResponse>(`${this.base}/presign-upload`, {
+      filename,
+      contentType
+    });
+  }
+
+  finalize(req: FinalizeRequest): Observable<FinalizeResponse> {
+    return this.http.post<FinalizeResponse>(`${this.base}/finalize`, req);
+  }
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`,{});
+    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });
   }
 
-
-  download(id: string, type: 'redacted'|'thumbnail'|'original' = 'redacted') {
+  downloadPackage(id: string, type: 'original' | 'redacted' = 'original') {
     const params = new HttpParams().set('type', type);
     return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
   }
 
-  presignUpload(filename: string, contentType: string) {
-    return this.http.post<{ key: string; url: string; headers: Record<string, string | string[]> }>(
-      `${this.base}/presign-upload`,
-      { filename, contentType }
-    );
-  }
-
-  finalize(payload: {
-    key: string; title?: string; description?: string;
-    capturedAtIso?: string; lat?: number; lon?: number; accuracy?: number;
-    redactMode?: 'BLUR' | 'NONE';                // NEW
-  }) {
-    return this.http.post<FinalizeResponse>(`${this.base}/finalize`, payload);
-  }
-
-  // ----- Share (public) -----
-  getShare(token: string) {
-    return this.http.get<{
-      token: string;
-      expiresAt: string;
-      allowOriginal: boolean;
-      evidence: {
-        id: string; title?: string; description?: string;
-        capturedAt?: string; status: string; hasRedacted: boolean; hasThumb: boolean;
-      };
-      links: { redactedUrl?: string|null; originalUrl?: string|null; thumbUrl?: string|null }
-    }>(`${environment.apiBase}/share/${token}`);
-  }
-
-
-  thumbUrlById(id?: string | null, key?: string | null): string | SafeValue {
-    if (!id || !key) return SafeArray;
+  thumbUrlById(id?: string | null, key?: string | null): string | null {
+    if (!id || !key) return null;
     const params = new HttpParams()
       .set('id', id)
       .set('key', key);
     return `${this.base}/thumb?${params.toString()}`;
   }
 
+  sharePdfUrlById(id: string): string {
+    return `${this.base}/${id}/pdf`;
+  }
+
+  private enrichEvidence(ev: Evidence): Evidence {
+    return {
+      ...ev,
+      thumbnailUrl: ev.thumbnailUrl || this.thumbUrlById(ev.id, ev.thumbnailKey),
+      zipUrl: ev.zipUrl || `${this.base}/${ev.id}/download?type=original`,
+      pdfUrl: ev.pdfUrl || `${this.base}/${ev.id}/pdf`
+    };
+  }
 }

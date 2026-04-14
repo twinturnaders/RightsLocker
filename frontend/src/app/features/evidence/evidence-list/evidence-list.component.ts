@@ -13,9 +13,9 @@ export class EvidenceListComponent implements OnInit {
   protected api = inject(EvidenceApi);
 
   @Output() selected = new EventEmitter<Evidence>();
+  @Output() deleted = new EventEmitter<string>();
 
   evidence: Evidence[] = [];
-  id = '';
   loading = false;
   error = '';
   currentPage = 0;
@@ -24,12 +24,7 @@ export class EvidenceListComponent implements OnInit {
 
   normalizeDate(value: string | number | null | undefined): string | number | null {
     if (value == null) return null;
-
-    if (typeof value === 'number') {
-      // Backend sends epoch seconds; Angular DatePipe expects milliseconds.
-      return value * 1000;
-    }
-
+    if (typeof value === 'number') return value * 1000;
     return value;
   }
 
@@ -50,6 +45,11 @@ export class EvidenceListComponent implements OnInit {
         this.evidence = page.content;
         this.totalPages = page.totalPages ?? 0;
         this.loading = false;
+
+        if (this.evidence.length === 0 && this.currentPage > 0) {
+          this.currentPage = 0;
+          this.load();
+        }
       },
       error: err => {
         this.error = err?.error?.message || 'Failed to load evidence';
@@ -59,9 +59,7 @@ export class EvidenceListComponent implements OnInit {
   }
 
   onPageChange(newPage: number) {
-    if (newPage < 0 || (this.totalPages && newPage >= this.totalPages)) {
-      return;
-    }
+    if (newPage < 0 || (this.totalPages && newPage >= this.totalPages)) return;
     this.currentPage = newPage;
     this.load();
   }
@@ -76,5 +74,42 @@ export class EvidenceListComponent implements OnInit {
 
   pick(e: Evidence) {
     this.selected.emit(e);
+  }
+
+  sharePdf(ev: Evidence, event?: MouseEvent) {
+    event?.stopPropagation();
+    if (!ev?.id) return;
+    const url = ev.pdfUrl || this.api.sharePdfUrlById(ev.id);
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+
+  downloadZip(ev: Evidence, event?: MouseEvent) {
+    event?.stopPropagation();
+    if (!ev?.id) return;
+    const url = ev.zipUrl || `${this.api.base}/${ev.id}/download?type=original`;
+    window.open(url, '_blank', 'noopener');
+  }
+
+  delete(ev: Evidence, event?: MouseEvent) {
+    event?.stopPropagation();
+    if (!ev?.id) return;
+    if (!confirm(`Delete "${ev.title || 'Untitled'}"? This cannot be undone.`)) return;
+
+    this.loading = true;
+    this.api.delete(ev.id).subscribe({
+      next: () => {
+        this.loading = false;
+        this.deleted.emit(ev.id);
+        this.load();
+      },
+      error: err => {
+        this.error = err?.error?.message || 'Failed to delete evidence';
+        this.loading = false;
+      }
+    });
+  }
+
+  trackById(_index: number, item: Evidence) {
+    return item.id;
   }
 }

@@ -6,14 +6,18 @@
     </div>
 
     <ng-container *ngIf="!loading() && evidence() as ev">
-      <button
-        class="btn danger"
-        [disabled]="deleting() || !canDelete(ev)"
-        (click)="onDelete(ev)"
-        title="{{ canDelete(ev) ? 'Delete evidence' : 'Deletion disabled while on legal hold' }}">
-        <span *ngIf="!deleting()">Delete</span>
-        <span *ngIf="deleting()">Deleting…</span>
-      </button>
+      <div class="row">
+        <button class="btn secondary" type="button" (click)="openPdf(ev)">Share PDF</button>
+        <button class="btn secondary" type="button" (click)="openZip(ev)">Download ZIP</button>
+        <button
+          class="btn danger"
+          [disabled]="deleting() || !canDelete(ev)"
+          (click)="onDelete(ev)"
+          title="{{ canDelete(ev) ? 'Delete evidence' : 'Deletion disabled while on legal hold' }}">
+          <span *ngIf="!deleting()">Delete</span>
+          <span *ngIf="deleting()">Deleting…</span>
+        </button>
+      </div>
     </ng-container>
   </div>
 
@@ -23,9 +27,9 @@
   <ng-container *ngIf="!loading() && evidence() as ev">
     <div class="detail-layout">
       <div class="stack-lg">
-        <div class="detail-preview card" *ngIf="thumbSrc()">
+        <div class="detail-preview card" *ngIf="thumbSrc() as thumb">
           <div class="thumb-container">
-            <img [ngSrc]="thumbSrc()" alt="thumbnail" fill />
+            <img [ngSrc]="thumb" alt="thumbnail" fill />
           </div>
         </div>
 
@@ -50,6 +54,17 @@
             <tr><th>Captured at</th><td>{{ ev.capturedAt ? (ev.capturedAt | date:'medium':'UTC') : '—' }}</td></tr>
             <tr><th>EXIF date original</th><td>{{ ev.exifDateOriginal ? (ev.exifDateOriginal | date:'medium':'UTC') : '—' }}</td></tr>
             <tr><th>Time zone (EXIF)</th><td>{{ tzLabel(ev.tzOffsetMinutes) }}</td></tr>
+          </table>
+        </div>
+
+        <div class="card stack-sm" *ngIf="ev.assessmentSummary || ev.provenanceStatus || ev.metadataIntegrity || ev.syntheticMediaRisk || ev.manipulationSignals">
+          <h3>Authenticity</h3>
+          <table class="kv-table">
+            <tr><th>Provenance</th><td>{{ ev.provenanceStatus || '—' }}</td></tr>
+            <tr><th>Metadata integrity</th><td>{{ ev.metadataIntegrity || '—' }}</td></tr>
+            <tr><th>Synthetic media risk</th><td>{{ ev.syntheticMediaRisk || '—' }}</td></tr>
+            <tr><th>Manipulation signals</th><td>{{ ev.manipulationSignals || '—' }}</td></tr>
+            <tr><th>Summary</th><td>{{ ev.assessmentSummary || '—' }}</td></tr>
           </table>
         </div>
       </div>
