@@ -114,7 +114,7 @@ public class EvidenceService {
                 evidence.getCapturedAt(),
                 evidence.getCaptureLatlon(),
                 evidence.getCaptureAccuracyM(),
-                evidence.getStatus() == EvidenceStatus.RECEIVED,
+                evidence.getStatus(),
                 evidence.getOriginalSha256(),
                 evidence.getOriginalSizeB(),
                 evidence.getOriginalKey(),
@@ -152,7 +152,7 @@ public class EvidenceService {
                 ev.getCapturedAt(),
                 ev.getCaptureLatlon(),
                 ev.getCaptureAccuracyM(),
-                ev.getStatus() == EvidenceStatus.RECEIVED,
+                EvidenceStatus.RECEIVED,
                 ev.getOriginalSha256(),
                 ev.getOriginalSizeB(),
                 ev.getOriginalKey(),
@@ -186,6 +186,7 @@ public class EvidenceService {
     public OwnerDto getOwnerDTO(AppUser owner) {
         return new OwnerDto(owner.getId(), owner.getEmail(), owner.getDisplayName(), owner.getRole());
     }
+  
     public String getKey(Optional<Evidence> item) {
         return item.map(Evidence::getOriginalKey).orElse(null);
     }

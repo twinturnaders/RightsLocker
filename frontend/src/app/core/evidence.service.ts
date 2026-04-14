@@ -126,12 +126,20 @@ export class EvidenceApi {
   }
 
   setLegalHold(id: string, legalHold: boolean) {
-    return this.http.post<Evidence>(`${this.base}/${id}/legal-hold`, { legalHold });
+    return this.http.post<Evidence>(`${this.base}/${id}/${legalHold}`, {});
   }
 
   downloadPackage(id: string, type: 'original' | 'redacted' = 'original') {
     const params = new HttpParams().set('type', type);
     return this.http.get<{ url: string }>(`${this.base}/${id}/download`, { params });
+  }
+
+  downloadPdf(id: string) {
+    return this.http.get<{ url: string }>(`${this.base}/${id}/pdf-url`);
+  }
+
+  getPdfUrl(id: string): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.base}/${id}/pdf-url`);
   }
 
   thumbUrlById(id?: string | null, key?: string | null): string | null {

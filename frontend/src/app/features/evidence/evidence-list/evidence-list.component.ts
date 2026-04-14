@@ -79,15 +79,37 @@ export class EvidenceListComponent implements OnInit {
   sharePdf(ev: Evidence, event?: MouseEvent) {
     event?.stopPropagation();
     if (!ev?.id) return;
-    const url = ev.pdfUrl || this.api.sharePdfUrlById(ev.id);
-    if (url) window.open(url, '_blank', 'noopener');
+
+    // Use the API method that includes auth headers
+    this.api.downloadPackage(ev.id, 'redacted').subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.open(response.url, '_blank', 'noopener');
+        }
+      },
+      error: (err) => {
+        console.error('Failed to get PDF URL:', err);
+        this.error = 'Failed to access PDF';
+      }
+    });
   }
 
   downloadZip(ev: Evidence, event?: MouseEvent) {
     event?.stopPropagation();
     if (!ev?.id) return;
-    const url = ev.zipUrl || `${this.api.base}/${ev.id}/download?type=original`;
-    window.open(url, '_blank', 'noopener');
+
+    // Use the API method that includes auth headers
+    this.api.downloadPackage(ev.id, 'original').subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.open(response.url, '_blank', 'noopener');
+        }
+      },
+      error: (err) => {
+        console.error('Failed to get download URL:', err);
+        this.error = 'Failed to access download';
+      }
+    });
   }
 
   delete(ev: Evidence, event?: MouseEvent) {

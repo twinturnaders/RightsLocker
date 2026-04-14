@@ -24,7 +24,7 @@ public record EvidenceDetailsDto(
         BigDecimal captureAccuracyM,
 
 
-        boolean status,
+        org.rights.locker.Enums.EvidenceStatus status,
 
         String originalSha256,
 

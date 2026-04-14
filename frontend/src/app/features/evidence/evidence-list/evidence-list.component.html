@@ -40,7 +40,7 @@
             </ng-container>
             <ng-template #noCap>—</ng-template>
           </span>
-          <span>Legal hold: {{ e.legalHold === true ? 'Yes' : e.legalHold === false ? 'No' : '—' }}</span>
+          <span>Legal hold: {{ e.legalHold === true ? 'Yes' : (e.legalHold === false ? 'No' : '—') }}</span>
         </div>
 
         <div class="evidence-card__actions">

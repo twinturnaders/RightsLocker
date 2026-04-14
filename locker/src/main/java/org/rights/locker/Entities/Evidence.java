@@ -161,8 +161,7 @@ public class Evidence {
     @Column(name = "assessment_summary", columnDefinition = "TEXT")
     private String assessmentSummary;
 
-    public void setRedactedSizeB(Long outputSizeB) {
+    public UUID getOwnerId() {
+        return owner != null ? owner.getId() : null;
     }
-
-
 }

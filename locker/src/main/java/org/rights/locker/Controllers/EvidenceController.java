@@ -2,6 +2,7 @@ package org.rights.locker.Controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.rights.locker.DTOs.EvidenceDetailsDto;
 import org.rights.locker.DTOs.FinalizeResponse;
 import org.rights.locker.DTOs.MediaMetadata;
 import org.rights.locker.DTOs.AuthenticityAssessment;
@@ -36,6 +37,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
@@ -86,19 +88,53 @@ public class EvidenceController {
     }
 
     @GetMapping("/{id}/pdf")
-    public ResponseEntity<Map<String, String>> pdf(@PathVariable UUID id,
-                                                   @AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<byte[]> pdf(@PathVariable UUID id,
+                                     @AuthenticationPrincipal UserPrincipal principal) {
         principalService.requireUser(principal);
+        AppUser user = userService.getAppUser(principal.getId());
 
         Evidence ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // Check ownership
+        if (ev.getOwnerId() == null || !ev.getOwnerId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
 
         if (ev.getOriginalKey() == null || ev.getOriginalKey().isBlank()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Original media is not available yet.");
         }
 
-        String url = buildPdfUrl(ev.getId());
-        return ResponseEntity.ok(Map.of("url", url));
+        // Build metadata map for PDF generation
+        Map<String, Object> metadata = buildMetadataMap(ev);
+        byte[] pdfBytes = pdfBuilderService.buildMetadataPdf(metadata);
+
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate PDF");
+        }
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "inline; filename=\"evidence-" + ev.getId() + "-metadata.pdf\"")
+                .body(pdfBytes);
+    }
+
+    @GetMapping("/{id}/pdf-url")
+    public ResponseEntity<Map<String, String>> getPdfUrl(@PathVariable UUID id,
+                                                        @AuthenticationPrincipal UserPrincipal principal) {
+        principalService.requireUser(principal);
+        AppUser user = userService.getAppUser(principal.getId());
+
+        Evidence ev = evidenceRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // Check ownership
+        if (ev.getOwnerId() == null || !ev.getOwnerId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        String pdfUrl = "/api/evidence/" + id + "/pdf";
+        return ResponseEntity.ok(Map.of("url", pdfUrl));
     }
 
     public record PresignUploadReq(String filename, String contentType) {}
@@ -253,17 +289,25 @@ public class EvidenceController {
         return Map.of("url", presigned.url().toString());
     }
 
-    @PostMapping("/{id}/{legalHold}")
+    @PostMapping("/{id}/legal-hold")
     @Transactional
-    public ResponseEntity<Void> setLegalHold(@PathVariable UUID id,
-                                             @PathVariable boolean legalHold,
-                                             @AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<EvidenceDetailsDto> setLegalHold(@PathVariable UUID id,
+                                                           @RequestBody Map<String, Object> request,
+                                                           @AuthenticationPrincipal UserPrincipal principal) {
 
         principalService.requireUser(principal);
         AppUser user = userService.getAppUser(principal.getId());
 
+        boolean legalHold = Boolean.TRUE.equals(request.get("legalHold"));
+
         var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // Check ownership
+        var ownerId = ev.getOwner().getId();
+        if (!ownerId.equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
 
         ev.setLegalHold(legalHold);
         ev.setUpdatedAt(Instant.now());
@@ -274,7 +318,7 @@ public class EvidenceController {
         evidenceRepo.save(ev);
         custody.record(ev, user, custEvent, Map.of());
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(evidenceService.getDetailsDTO(ev));
     }
 
     @DeleteMapping("/{id}")
@@ -285,6 +329,12 @@ public class EvidenceController {
         AppUser user = userService.getAppUser(principal.getId());
         var ev = evidenceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+                        // Check ownership
+
+                        if (ev.getOwnerId() == null || !ev.getOwnerId().equals(user.getId())) {
+                            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+                        }
 
         if (Boolean.TRUE.equals(ev.getLegalHold())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -304,8 +354,52 @@ public class EvidenceController {
         evidenceRepo.delete(ev);
     }
 
-    private String buildPdfUrl(UUID id) {
-        return "/api/share/pdf/" + id;
+    private Map<String, Object> buildMetadataMap(Evidence ev) {
+        Map<String, Object> metadata = new HashMap<>();
+
+        metadata.put("evidenceId", ev.getId().toString());
+        metadata.put("title", ev.getTitle());
+        metadata.put("description", ev.getDescription());
+        metadata.put("capturedAt", ev.getCapturedAt());
+        metadata.put("ingestedAt", ev.getCreatedAt());
+        metadata.put("originalSha256", ev.getOriginalSha256());
+        metadata.put("originalSizeB", ev.getOriginalSizeB());
+        metadata.put("status", ev.getStatus());
+        metadata.put("legalHold", ev.getLegalHold());
+
+        // EXIF/metadata fields
+        metadata.put("dateOriginal", ev.getExifDateOriginal());
+        metadata.put("tzMinutes", ev.getTzOffsetMinutes());
+        if (ev.getCaptureLatlon() != null) {
+            metadata.put("lat", ev.getCaptureLatlon().getY());
+            metadata.put("lon", ev.getCaptureLatlon().getX());
+        }
+        metadata.put("altitudeM", ev.getCaptureAltitudeM());
+        metadata.put("headingDeg", ev.getCaptureHeadingDeg());
+        metadata.put("cameraMake", ev.getCameraMake());
+        metadata.put("cameraModel", ev.getCameraModel());
+        metadata.put("lensModel", ev.getLensModel());
+        metadata.put("software", ev.getSoftware());
+        metadata.put("widthPx", ev.getWidthPx());
+        metadata.put("heightPx", ev.getHeightPx());
+        metadata.put("orientationDeg", ev.getOrientationDeg());
+
+        // Video fields
+        metadata.put("container", ev.getContainer());
+        metadata.put("videoCodec", ev.getVideoCodec());
+        metadata.put("audioCodec", ev.getAudioCodec());
+        metadata.put("durationMs", ev.getDurationMs());
+        metadata.put("videoFps", ev.getVideoFps());
+        metadata.put("videoRotationDeg", ev.getVideoRotationDeg());
+
+        // Authenticity assessment
+        metadata.put("provenanceStatus", ev.getProvenanceStatus());
+        metadata.put("metadataIntegrity", ev.getMetadataIntegrity());
+        metadata.put("syntheticMediaRisk", ev.getSyntheticMediaRisk());
+        metadata.put("manipulationSignals", ev.getManipulationSignals());
+        metadata.put("assessmentSummary", ev.getAssessmentSummary());
+
+        return metadata;
     }
 
     private void deleteQuiet(String bucket, String key) {
