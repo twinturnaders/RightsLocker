@@ -1,12 +1,14 @@
 import { Component, EventEmitter, Input, Output, effect, inject, signal } from '@angular/core';
-import { DatePipe, NgIf, NgOptimizedImage } from '@angular/common';
+import {DatePipe, DecimalPipe, NgIf, NgOptimizedImage} from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Evidence, EvidenceApi } from '../../../core/evidence.service';
+import {DurationMsPipe} from '../../../core/pipes/duration.pipe';
+import {BytesPipe} from '../../../core/pipes/bytes.pipe';
 
 @Component({
   standalone: true,
   selector: 'rl-evidence-detail',
-  imports: [NgIf, RouterLink, NgOptimizedImage, DatePipe],
+  imports: [NgIf, RouterLink, NgOptimizedImage, DatePipe, DurationMsPipe, DecimalPipe, BytesPipe],
   templateUrl: 'evidence-detail.component.html',
   styleUrls: ['evidence-detail.component.css']
 })
