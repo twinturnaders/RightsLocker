@@ -15,10 +15,10 @@ jobs:
         include:
           - name: locker
             context: locker
-            image: docker.io/thatsmypurse/rl-backend
+            image: docker.io/thatsmypurse/rl-back
           - name: frontend
             context: frontend
-            image: docker.io/thatsmypurse/rl-frontend
+            image: docker.io/thatsmypurse/rl-front
 
     steps:
       - uses: actions/checkout@v4
